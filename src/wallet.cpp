@@ -2130,7 +2130,7 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
 
     if (IsLocked())
     {
-        string strError = _("Error: Wallet locked, unable to create transaction  ");
+        string strError = _("Error: Wallet locked, unable to create transaction!");
         LogPrintf("SendMoney() : %s", strError);
         return strError;
     }
@@ -2144,9 +2144,9 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
     {
         string strError;
         if (nValue + nFeeRequired > GetBalance())
-            strError = strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds  "), FormatMoney(nFeeRequired));
+            strError = strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!"), FormatMoney(nFeeRequired));
         else
-            strError = _("Error: Transaction creation failed  ");
+            strError = _("Error: Transaction creation failed!");
         LogPrintf("SendMoney() : %s\n", strError);
         return strError;
     }
@@ -2155,7 +2155,7 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
         return "ABORTED";
 
     if (!CommitTransaction(wtxNew, reservekey))
-        return _("Error: The transaction was rejected.  This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
+        return _("Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
 
     return "";
 }
