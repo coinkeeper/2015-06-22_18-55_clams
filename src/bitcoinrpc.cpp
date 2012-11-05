@@ -781,7 +781,7 @@ void StartRPCThreads()
                 strWhatAmI,
                 GetConfigFile().string(),
                 EncodeBase58(&rand_pwd[0],&rand_pwd[0]+32)),
-            _("Error"), CClientUIInterface::OK | CClientUIInterface::MODAL);
+                "", CClientUIInterface::MSG_ERROR);
         StartShutdown();
         return;
     }
@@ -863,7 +863,7 @@ void StartRPCThreads()
     }
 
     if (!fListening) {
-        uiInterface.ThreadSafeMessageBox(strerr, _("Error"), CClientUIInterface::OK | CClientUIInterface::MODAL);
+        uiInterface.ThreadSafeMessageBox(strerr, "", CClientUIInterface::MSG_ERROR);
         StartShutdown();
         return;
     }
