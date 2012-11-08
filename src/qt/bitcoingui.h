@@ -191,4 +191,4 @@ private slots:
     void detectShutdown();
 };
 
-#endif
+#endif // BITCOINGUI_H
