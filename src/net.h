@@ -211,6 +211,8 @@ public:
     bool fSuccessfullyConnected;
     bool fDisconnect;
     CSemaphoreGrant grantOutbound;
+    CCriticalSection cs_filter;
+    CBloomFilter* pfilter;
     int nRefCount;
 protected:
 
