@@ -769,7 +769,8 @@ void StartRPCThreads()
         else if (mapArgs.count("-daemon"))
             strWhatAmI = strprintf(_("To use the %s option"), "\"-daemon\"");
         uiInterface.ThreadSafeMessageBox(strprintf(
-            _("%s, you must set a rpcpassword in the configuration file:\n %s\n"
+            _("%s, you must set a rpcpassword in the configuration file:\n"
+              "%s\n"
               "It is recommended you use the following random password:\n"
               "rpcuser=clamrpc\n"
               "rpcpassword=%s\n"
