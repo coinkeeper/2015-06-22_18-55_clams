@@ -2720,7 +2720,7 @@ string GetWarnings(string strFor)
     string strStatusBar;
     string strRPC;
 
-    if (GetBoolArg("-testsafemode"))
+    if (GetBoolArg("-testsafemode", false))
         strRPC = "test";
 
     // Misc warnings like out of disk space and clock is wrong
@@ -3388,7 +3388,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         uint256 hashReply;
         vRecv >> hashReply;
 
-        if (!GetBoolArg("-allowreceivebyip"))
+        if (!GetBoolArg("-allowreceivebyip", false))
         {
             pfrom->PushMessage("reply", hashReply, (int)2, string(""));
             return true;
