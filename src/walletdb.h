@@ -91,13 +91,7 @@ public:
         if(!Write(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
             return false;
 
-        // hash pubkey/privkey to accelerate wallet load
-        std::vector<unsigned char> vchKey;
-        vchKey.reserve(vchPubKey.size() + vchPrivKey.size());
-        vchKey.insert(vchKey.end(), vchPubKey.begin(), vchPubKey.end());
-        vchKey.insert(vchKey.end(), vchPrivKey.begin(), vchPrivKey.end());
-
-        return Write(std::make_pair(std::string("key"), vchPubKey), std::make_pair(vchPrivKey, Hash(vchKey.begin(), vchKey.end())), false);
+        return Write(std::make_pair(std::string("key"), vchPubKey), vchPrivKey, false);
     }
 
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta)
@@ -108,12 +102,12 @@ public:
         if(!Write(std::make_pair(std::string("keymeta"), vchPubKey), keyMeta))
             return false;
 
-        if (!Write(std::make_pair(std::string("ckey"), vchPubKey.Raw()), vchCryptedSecret, false))
+        if (!Write(std::make_pair(std::string("ckey"), vchPubKey), vchCryptedSecret, false))
             return false;
         if (fEraseUnencryptedKey)
         {
-            Erase(std::make_pair(std::string("key"), vchPubKey.Raw()));
-            Erase(std::make_pair(std::string("wkey"), vchPubKey.Raw()));
+            Erase(std::make_pair(std::string("key"), vchPubKey));
+            Erase(std::make_pair(std::string("wkey"), vchPubKey));
         }
         return true;
     }
@@ -150,7 +144,7 @@ public:
     bool WriteDefaultKey(const CPubKey& vchPubKey)
     {
         nWalletDBUpdated++;
-        return Write(std::string("defaultkey"), vchPubKey.Raw());
+        return Write(std::string("defaultkey"), vchPubKey);
     }
 
     bool ReadPool(int64_t nPool, CKeyPool& keypool)

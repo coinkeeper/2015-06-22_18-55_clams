@@ -2424,6 +2424,9 @@ bool CBlock::CheckBlockSignature() const
     if (IsProofOfWork())
         return vchBlockSig.empty();
 
+    if (vchBlockSig.empty())
+        return false;
+
     vector<valtype> vSolutions;
     txnouttype whichType;
 
@@ -2435,12 +2438,7 @@ bool CBlock::CheckBlockSignature() const
     if (whichType == TX_PUBKEY)
     {
         valtype& vchPubKey = vSolutions[0];
-        CKey key;
-        if (!key.SetPubKey(vchPubKey))
-            return false;
-        if (vchBlockSig.empty())
-            return false;
-        return key.Verify(GetHash(), vchBlockSig);
+        return CPubKey(vchPubKey).Verify(GetHash(), vchBlockSig);
     }
 
     return false;

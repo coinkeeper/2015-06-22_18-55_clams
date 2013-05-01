@@ -360,30 +360,19 @@ bool inline CBitcoinAddressVisitor::operator()(const CNoDestination &id) const {
 class CBitcoinSecret : public CBase58Data
 {
 public:
-  enum
-    {
-        PRIVKEY_ADDRESS = CBitcoinAddress::SCRIPT_ADDRESS + 128,
-        PRIVKEY_ADDRESS_BTC = 128,
-        PRIVKEY_ADDRESS_LTC = CBitcoinAddress::PUBKEY_ADDRESS_LTC + 128,
-        PRIVKEY_ADDRESS_DOGE = CBitcoinAddress::PUBKEY_ADDRESS_DOGE + 128,
-	PRIVKEY_ADDRESS_TEST = CBitcoinAddress::PUBKEY_ADDRESS_TEST + 128,
-    };
-
-    void SetSecret(const CSecret& vchSecret, bool fCompressed)
+    void SetKey(const CKey& vchSecret)
     {
         assert(vchSecret.IsValid());
-        SetData(Params().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
+        SetData(128 + (fTestNet ? CBitcoinAddress::PUBKEY_ADDRESS_TEST : CBitcoinAddress::PUBKEY_ADDRESS), vchSecret.begin(), vchSecret.size());
         if (vchSecret.IsCompressed())
             vchData.push_back(1);
     }
 
-    CSecret GetSecret(bool &fCompressedOut)
+    CKey GetKey()
     {
-        CSecret vchSecret;
-        vchSecret.resize(32);
-        memcpy(&vchSecret[0], &vchData[0], 32);
-        fCompressedOut = vchData.size() == 33;
-        return vchSecret;
+        CKey ret;
+        ret.Set(&vchData[0], &vchData[32], vchData.size() > 32 && vchData[32] == 1);
+        return ret;
     }
 
     bool IsValid() const
@@ -421,9 +410,9 @@ public:
         return SetString(strSecret.c_str());
     }
 
-    CBitcoinSecret(const CSecret& vchSecret, bool fCompressed)
+    CBitcoinSecret(const CKey& vchSecret)
     {
-        SetSecret(vchSecret, fCompressed);
+        SetKey(vchSecret);
     }
 
     CBitcoinSecret()
