@@ -99,8 +99,19 @@ public:
         return vch;
     }
 
-    const unsigned char *end() const {
-        return vch+size();
+    // Simple read-only vector-like interface to the pubkey data.
+    unsigned int size() const { return GetLen(vch[0]); }
+    const unsigned char *begin() const { return vch; }
+    const unsigned char *end() const { return vch+size(); }
+    const unsigned char &operator[](unsigned int pos) const { return vch[pos]; }
+
+    // Comparator implementation.
+    friend bool operator==(const CPubKey &a, const CPubKey &b) {
+        return a.vch[0] == b.vch[0] &&
+               memcmp(a.vch, b.vch, a.size()) == 0;
+    }
+    friend bool operator!=(const CPubKey &a, const CPubKey &b) {
+        return !(a == b);
     }
 
     friend bool operator==(const CPubKey &a, const CPubKey &b) { return memcmp(a.vch, b.vch, a.size()) == 0; }
@@ -116,13 +127,12 @@ public:
 
     template<typename Stream> void Serialize(Stream &s, int nType, int nVersion) const {
         unsigned int len = size();
-        ::Serialize(s, VARINT(len), nType, nVersion);
+        ::WriteCompactSize(s, len);
         s.write((char*)vch, len);
     }
 
     template<typename Stream> void Unserialize(Stream &s, int nType, int nVersion) {
-        unsigned int len;
-        ::Unserialize(s, VARINT(len), nType, nVersion);
+        unsigned int len = ::ReadCompactSize(s);
         if (len <= 65) {
             s.read((char*)vch, len);
         } else {
