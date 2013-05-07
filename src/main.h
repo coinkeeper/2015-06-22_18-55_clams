@@ -82,7 +82,6 @@ extern uint64_t nLastBlockSize;
 extern int64_t nLastCoinStakeSearchInterval;
 extern const std::string strMessageMagic;
 extern int64_t nTimeBestReceived;
-extern unsigned char pchMessageStart[4];
 extern std::map<uint256, CBlock*> mapOrphanBlocks;
 extern bool fHaveGUI;
 
@@ -995,7 +994,7 @@ public:
 
         // Write index header
         unsigned int nSize = fileout.GetSerializeSize(*this);
-        fileout << FLATDATA(pchMessageStart) << nSize;
+        fileout << FLATDATA(Params().MessageStart()) << nSize;
 
         // Write block
         long fileOutPos = ftell(fileout);
@@ -1473,7 +1472,7 @@ public:
             if (vHave.size() > 10)
                 nStep *= 2;
         }
-        vHave.push_back((!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet));
+        vHave.push_back(Params().HashGenesisBlock());
     }
 
     int GetDistanceBack()
@@ -1526,7 +1525,7 @@ public:
                     return hash;
             }
         }
-        return (!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet);
+        return Params().HashGenesisBlock();
     }
 
     int GetHeight()
