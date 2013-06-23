@@ -270,10 +270,12 @@ bool CTransaction::ReadFromDisk(COutPoint prevout)
     return ReadFromDisk(txdb, prevout, txindex);
 }
 
-bool IsStandardTx(const CTransaction& tx)
+bool IsStandardTx(const CTransaction& tx, string& reason)
 {
-    if (tx.nVersion > CTransaction::CURRENT_VERSION)
+    if (tx.nVersion > CTransaction::CURRENT_VERSION) {
+        reason = "version";
         return false;
+    }
 
     // Treat non-final transactions as non-standard to prevent a specific type
     // of double-spend attack, as well as DoS attacks. (if the transaction
@@ -293,10 +295,12 @@ bool IsStandardTx(const CTransaction& tx)
     // can't know what timestamp the next block will have, and there aren't
     // timestamp applications where it matters.
     if (!IsFinalTx(tx, nBestHeight + 1)) {
+        reason = "non-final";
         return false;
     }
     // nTime has different purpose from nLockTime but can be used in similar attacks
     if (tx.nTime > FutureDrift(GetAdjustedTime(), nBestHeight + 1)) {
+        reason = "time-too-new";
         return false;
     }
 
@@ -304,12 +308,15 @@ bool IsStandardTx(const CTransaction& tx)
     // almost as much to process as they cost the sender in fees, because
     // computing signature hashes is O(ninputs*txsize). Limiting transactions
     // to MAX_STANDARD_TX_SIZE mitigates CPU exhaustion attacks.
-    uint sz = tx.GetSerializeSize(SER_NETWORK, CTransaction::CURRENT_VERSION);
-    if (sz >= MAX_STANDARD_TX_SIZE)
+    unsigned int sz = tx.GetSerializeSize(SER_NETWORK, CTransaction::CURRENT_VERSION);
+    if (sz >= MAX_STANDARD_TX_SIZE) {
+        reason = "tx-size";
         return false;
+    }
 
     // Disallow large transaction comments
     if (tx.strCLAMSpeech.length() > MAX_TX_COMMENT_LEN) {
+        reason = "tx-comment-to-large";
         return false;
     }
  
@@ -323,11 +330,15 @@ bool IsStandardTx(const CTransaction& tx)
         // CHECKMULTISIG scriptPubKey, though such a scriptPubKey is not
         // considered standard)
         if (txin.scriptSig.size() > 1650) {
+            reason = "scriptsig-size";
             return false;
         }
-        if (!txin.scriptSig.IsPushOnly())
+        if (!txin.scriptSig.IsPushOnly()) {
+            reason = "scriptsig-not-pushonly";
             return false;
+        }
         if (!txin.scriptSig.HasCanonicalPushes()) {
+            reason = "scriptsig-non-canonical-push";
             return false;
         }
     }
@@ -335,13 +346,18 @@ bool IsStandardTx(const CTransaction& tx)
     uint nDataOut = 0;
     txnouttype whichType;
     BOOST_FOREACH(const CTxOut& txout, tx.vout) {
-        if (!::IsStandard(txout.scriptPubKey, whichType))
+        if (!::IsStandard(txout.scriptPubKey, whichType)) {
+            reason = "scriptpubkey";
             return false;
+        }
         if (whichType == TX_NULL_DATA)
             nDataOut++;
-        if (txout.nValue == 0)
+        if (txout.nValue == 0) {
+            reason = "dust";
             return false;
+        }
         if (!txout.scriptPubKey.HasCanonicalPushes()) {
+            reason = "scriptpubkey-non-canonical-push";
             return false;
         }
     }
@@ -349,6 +365,7 @@ bool IsStandardTx(const CTransaction& tx)
     // not more than one data txout per non-data txout is permitted
     // only one data txout is permitted too
     if (nDataOut > 1 && nDataOut > tx.vout.size()/2) {
+        reason = "multi-op-return";
         return false;
     }
 
@@ -624,8 +641,10 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CTransaction &tx, bool fLimitFree,
         return tx.DoS(100, error("AcceptToMemoryPool : coinstake as individual tx"));
 
     // Rather not work on nonstandard transactions (unless -testnet)
-    if (!TestNet() && !IsStandardTx(tx))
-        return error("AcceptToMemoryPool : nonstandard transaction type");
+    string reason;
+    if (!TestNet() && !IsStandardTx(tx, reason))
+        return error("AcceptToMemoryPool : nonstandard transaction: %s",
+                     reason);
 
     // is it already in the memory pool?
     uint256 hash = tx.GetHash();
