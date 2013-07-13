@@ -149,7 +149,8 @@ void CKey::Reset()
         BN_clear_free(&bn);
     }
 
-    void GetPrivKey(CPrivKey &privkey) {
+    void GetPrivKey(CPrivKey &privkey, bool fCompressed) {
+        EC_KEY_set_conv_form(pkey, fCompressed ? POINT_CONVERSION_COMPRESSED : POINT_CONVERSION_UNCOMPRESSED);
         int nSize = i2d_ECPrivateKey(pkey, NULL);
         assert(nSize);
         privkey.resize(nSize);
@@ -376,19 +377,13 @@ bool CKey::SetSecret(const CSecret& vchSecret, bool fCompressed)
     return true;
 }
 
-CSecret CKey::GetSecret(bool &fCompressed) const
-{
-    CSecret vchRet;
-    vchRet.resize(32);
-    const BIGNUM *bn = EC_KEY_get0_private_key(pkey);
-    int nBytes = BN_num_bytes(bn);
-    if (bn == NULL)
-        throw key_error("CKey::GetSecret() : EC_KEY_get0_private_key failed");
-    int n=BN_bn2bin(bn,&vchRet[32 - nBytes]);
-    if (n != nBytes)
-        throw key_error("CKey::GetSecret(): BN_bn2bin failed");
-    fCompressed = fCompressedPubKey;
-    return vchRet;
+CPrivKey CKey::GetPrivKey() const {
+    assert(fValid);
+    CECKey key;
+    key.SetSecretBytes(vch);
+    CPrivKey privkey;
+    key.GetPrivKey(privkey, fCompressed);
+    return privkey;
 }
 
 CPrivKey CKey::GetPrivKey() const
