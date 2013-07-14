@@ -160,9 +160,22 @@ public:
         return size() == 33;
     }
 
-    std::vector<unsigned char> Raw() const {
-        return std::vector<unsigned char>(vch, vch+size());
-    }
+    // Verify a DER signature (~72 bytes).
+    // If this public key is not fully valid, the return value will be false.
+    bool Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig) const;
+
+    // Verify a compact signature (~65 bytes).
+    // See CKey::SignCompact.
+    bool VerifyCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) const;
+
+    // Recover a public key from a compact signature.
+    bool RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig);
+
+    // Turn this public key into an uncompressed public key.
+    bool Decompress();
+
+    // Derive BIP32 child pubkey.
+    bool Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
 };
 
 
@@ -183,7 +196,41 @@ protected:
 public:
     void SetCompressedPubKey(bool fCompressed = true);
 
-    void Reset();
+    // Construct an invalid private key.
+    CKey() : fValid(false) {
+        LockObject(vch);
+    }
+
+    // Copy constructor. This is necessary because of memlocking.
+    CKey(const CKey &secret) : fValid(secret.fValid), fCompressed(secret.fCompressed) {
+        LockObject(vch);
+        memcpy(vch, secret.vch, sizeof(vch));
+    }
+
+    // Destructor (again necessary because of memlocking).
+    ~CKey() {
+        UnlockObject(vch);
+    }
+
+    friend bool operator==(const CKey &a, const CKey &b) {
+        return a.fCompressed == b.fCompressed && memcmp(&a.vch[0], &b.vch[0], 32);
+    }
+
+    // Initialize using begin and end iterators to byte data.
+    template<typename T>
+    void Set(const T pbegin, const T pend, bool fCompressedIn) {
+        if (pend - pbegin != 32) {
+            fValid = false;
+            return;
+        }
+        if (Check(&pbegin[0])) {
+            memcpy(vch, (unsigned char*)&pbegin[0], 32);
+            fValid = true;
+            fCompressed = fCompressedIn;
+        } else {
+            fValid = false;
+        }
+    }
 
     CKey();
     CKey(const CKey& b);
@@ -221,11 +268,50 @@ public:
 
     bool IsValid();
 
+    // Derive BIP32 child key.
+    bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
+
     // Load private key and check that public key matches.
     bool Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck);
 
     // Check whether an element of a signature (r or s) is valid.
     static bool CheckSignatureElement(const unsigned char *vch, int len, bool half);
+};
+
+struct CExtPubKey {
+    unsigned char nDepth;
+    unsigned char vchFingerprint[4];
+    unsigned int nChild;
+    unsigned char vchChainCode[32];
+    CPubKey pubkey;
+
+    friend bool operator==(const CExtPubKey &a, const CExtPubKey &b) {
+        return a.nDepth == b.nDepth && memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], 4) == 0 && a.nChild == b.nChild &&
+               memcmp(&a.vchChainCode[0], &b.vchChainCode[0], 32) == 0 && a.pubkey == b.pubkey;
+    }
+
+    void Encode(unsigned char code[74]) const;
+    void Decode(const unsigned char code[74]);
+    bool Derive(CExtPubKey &out, unsigned int nChild) const;
+};
+
+struct CExtKey {
+    unsigned char nDepth;
+    unsigned char vchFingerprint[4];
+    unsigned int nChild;
+    unsigned char vchChainCode[32];
+    CKey key;
+
+    friend bool operator==(const CExtKey &a, const CExtKey &b) {
+        return a.nDepth == b.nDepth && memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], 4) == 0 && a.nChild == b.nChild &&
+               memcmp(&a.vchChainCode[0], &b.vchChainCode[0], 32) == 0 && a.key == b.key;
+    }
+
+    void Encode(unsigned char code[74]) const;
+    void Decode(const unsigned char code[74]);
+    bool Derive(CExtKey &out, unsigned int nChild) const;
+    CExtPubKey Neuter() const;
+    void SetMaster(const unsigned char *seed, unsigned int nSeedLen);
 };
 
 /** Check that required EC support is available at runtime */
