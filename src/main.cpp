@@ -2797,6 +2797,8 @@ void static ProcessGetData(CNode* pfrom)
 
     vector<CInv> vNotFound;
 
+    LOCK(cs_main);
+
     while (it != pfrom->vRecvGetData.end()) {
         // Don't bother if send buffer is too full to respond anyway
         if (pfrom->nSendSize >= SendBufferSize())
@@ -2946,9 +2948,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         pfrom->fClient = !(pfrom->nServices & NODE_NETWORK);
 
-        if (GetBoolArg("-synctime", true))
-            AddTimeData(pfrom->addr, nTime);
-
         // Change version
         pfrom->PushMessage("verack");
         pfrom->ssSend.SetVersion(min(pfrom->nVersion, PROTOCOL_VERSION));
@@ -3011,6 +3010,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         // ppcoin: ask for pending sync-checkpoint if any
         if (!IsInitialBlockDownload())
             Checkpoints::AskForPendingSyncCheckpoint(pfrom);
+
+        LOCK(cs_main);
+        if (GetBoolArg("-synctime", true))
+            AddTimeData(pfrom->addr, nTime);
     }
 
 
@@ -3112,7 +3115,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 break;
             }
         }
+
+        LOCK(cs_main);
         CTxDB txdb("r");
+
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++)
         {
             const CInv &inv = vInv[nInv];
@@ -3170,6 +3176,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         uint256 hashStop;
         vRecv >> locator >> hashStop;
 
+        LOCK(cs_main);
+
         // Find the last block the caller has in the main chain
         CBlockIndex* pindex = locator.GetBlockIndex();
 
@@ -3221,6 +3229,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         uint256 hashStop;
         vRecv >> locator >> hashStop;
 
+        LOCK(cs_main);
+
         CBlockIndex* pindex = NULL;
         if (locator.IsNull())
         {
@@ -3260,6 +3270,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         CInv inv(MSG_TX, tx.GetHash());
         pfrom->AddInventoryKnown(inv);
+
+        LOCK(cs_main);
 
         bool fMissingInputs = false;
         if (AcceptToMemoryPool(mempool, tx, true, &fMissingInputs))
@@ -3328,6 +3340,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         CInv inv(MSG_BLOCK, hashBlock);
         pfrom->AddInventoryKnown(inv);
 
+        LOCK(cs_main);
+
         if (ProcessBlock(pfrom, &block))
             mapAlreadyAskedFor.erase(inv);
         if (block.nDoS) pfrom->Misbehaving(block.nDoS);
@@ -3348,6 +3362,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
     else if (strCommand == "mempool")
     {
+        LOCK(cs_main);
+
         std::vector<uint256> vtxid;
         mempool.queryHashes(vtxid);
         vector<CInv> vInv;
@@ -3612,10 +3628,7 @@ bool ProcessMessages(CNode* pfrom)
         bool fRet = false;
         try
         {
-            {
-                LOCK(cs_main);
-                fRet = ProcessMessage(pfrom, strCommand, vRecv, msg.nTime);
-            }
+            fRet = ProcessMessage(pfrom, strCommand, vRecv, msg.nTime);
             boost::this_thread::interruption_point();
         }
         catch (std::ios_base::failure& e)
