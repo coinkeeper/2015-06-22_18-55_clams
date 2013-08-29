@@ -131,11 +131,47 @@ void CKey::Reset()
     fCompressedPubKey = false;
     if (pkey != NULL)
         EC_KEY_free(pkey);
-    pkey = EC_KEY_new_by_curve_name(NID_secp256k1);
-    if (pkey == NULL)
-        throw key_error("CKey::CKey() : EC_KEY_new_by_curve_name failed");
-    fSet = false;
-}
+    }
+
+    void GetSecretBytes(unsigned char vch[32]) const {
+        const BIGNUM *bn = EC_KEY_get0_private_key(pkey);
+        assert(bn);
+        int nBytes = BN_num_bytes(bn);
+        int n=BN_bn2bin(bn,&vch[32 - nBytes]);
+        assert(n == nBytes);
+        memset(vch, 0, 32 - nBytes);
+    }
+
+    void SetSecretBytes(const unsigned char vch[32]) {
+        BIGNUM bn;
+        BN_init(&bn);
+        assert(BN_bin2bn(vch, 32, &bn));
+        assert(EC_KEY_regenerate_key(pkey, &bn));
+        BN_clear_free(&bn);
+    }
+
+    void GetPrivKey(CPrivKey &privkey) {
+        int nSize = i2d_ECPrivateKey(pkey, NULL);
+        assert(nSize);
+        privkey.resize(nSize);
+        unsigned char* pbegin = &privkey[0];
+        int nSize2 = i2d_ECPrivateKey(pkey, &pbegin);
+        assert(nSize == nSize2);
+    }
+
+    bool SetPrivKey(const CPrivKey &privkey, bool fSkipCheck=false) {
+        const unsigned char* pbegin = &privkey[0];
+        if (d2i_ECPrivateKey(&pkey, &pbegin, privkey.size())) {
+            if(fSkipCheck)
+                return true;
+
+            // d2i_ECPrivateKey returns true if parsing succeeds.
+            // This doesn't necessarily mean the key is valid.
+            if (EC_KEY_check_key(pkey))
+                return true;
+        }
+        return false;
+    }
 
 CKey::CKey()
 {
@@ -333,11 +369,25 @@ CPubKey CKey::GetPubKey() const
     return ret;
 }
 
-bool CKey::Sign(uint256 hash, std::vector<unsigned char>& vchSig)
-{
-    vchSig.clear();
-    ECDSA_SIG *sig = ECDSA_do_sign((unsigned char*)&hash, sizeof(hash), pkey);
-    if (sig == NULL)
+bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
+    CECKey key;
+    if (!key.SetPrivKey(privkey, fSkipCheck))
+        return false;
+
+    key.GetSecretBytes(vch);
+    fCompressed = vchPubKey.IsCompressed();
+    fValid = true;
+
+    return true;
+}
+
+bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig) const {
+    if (!IsValid())
+        return false;
+    CECKey key;
+    if (!key.SetPubKey(*this))
+        return false;
+    if (!key.Verify(hash, vchSig))
         return false;
     BN_CTX *ctx = BN_CTX_new();
     BN_CTX_start(ctx);
