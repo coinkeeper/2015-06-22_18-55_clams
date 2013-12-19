@@ -2321,7 +2321,7 @@ bool CBlockIndex::IsSuperMajority(int minVersion, const CBlockIndex* pstart, uns
  
 bool ProcessBlock(CNode* pfrom, CBlock* pblock)
 {
-    AssertLockHeld("cs_main");
+    AssertLockHeld(cs_main);
 
     // Check for duplicate
     uint256 hash = pblock->GetHash();
