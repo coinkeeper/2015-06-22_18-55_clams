@@ -1211,7 +1211,7 @@ int GetNumBlocksOfPeers()
  
 bool IsInitialBlockDownload()
 {
-    AssertLockHeld(cs_main);
+    LOCK(cs_main);
     if (pindexBest == NULL || nBestHeight < Checkpoints::GetTotalBlocksEstimate())
         return true;
     static int64_t nLastUpdate;
@@ -2049,7 +2049,6 @@ bool CBlock::GetCoinAge(uint64_t& nCoinAge) const
  
 bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos, const uint256& hashProof)
 {
-    AssertLockHeld(cs_main);
     // Check for duplicate
     uint256 hash = GetHash();
     if (mapBlockIndex.count(hash))
@@ -2100,7 +2099,9 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos, const u
     txdb.WriteBlockIndex(CDiskBlockIndex(pindexNew));
     if (!txdb.TxnCommit())
         return false;
- 
+
+    LOCK(cs_main);
+
     // New best
     if (pindexNew->nChainTrust > nBestChainTrust)
         if (!SetBestChain(txdb, pindexNew))
@@ -2582,6 +2583,8 @@ FILE* AppendBlockFile(unsigned int& nFileRet)
  
 bool LoadBlockIndex(bool fAllowNew)
 {
+    LOCK(cs_main);
+
     CBigNum bnTrustedModulus;
  
     if (fTestNet)
