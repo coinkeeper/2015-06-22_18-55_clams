@@ -1811,7 +1811,6 @@ bool CWallet::GetStakeWeight(uint64_t& nWeight)
         {
             int64_t nTimeWeight = GetWeight((int64_t)pcoin.first->nTime, nCurrentTime);
             CBigNum bnWeight = CBigNum(pcoin.first->vout[pcoin.second].nValue) * nTimeWeight / COIN / (24 * 60 * 60);
-
             // Weight is greater than zero
             if (nTimeWeight > 0)
             {
