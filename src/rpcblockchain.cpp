@@ -5,8 +5,8 @@
 
 #include "rpcserver.h"
 #include "main.h"
+#include "bitcoinrpc.h"
 #include "kernel.h"
-#include "checkpoints.h"
 
 using namespace json_spirit;
 using namespace std;
@@ -94,7 +94,15 @@ double GetPoSKernelPS()
         pindex = pindex->pprev;
     }
 
-    return nStakesTime ? dStakeKernelsTriedAvg / nStakesTime : 0;
+    double result = 0;
+
+    if (nStakesTime)
+        result = dStakeKernelsTriedAvg / nStakesTime;
+
+    if (IsProtocolV2(nBestHeight))
+        result *= STAKE_TIMESTAMP_MASK + 1;
+
+    return result;
 }
 
 Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPrintTransactionDetail)
