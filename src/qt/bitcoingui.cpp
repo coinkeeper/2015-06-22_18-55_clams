@@ -413,8 +413,8 @@ void BitcoinGUI::setClientModel(ClientModel *clientModel)
         setNumConnections(clientModel->getNumConnections());
         connect(clientModel, SIGNAL(numConnectionsChanged(int)), this, SLOT(setNumConnections(int)));
 
-        setNumBlocks(clientModel->getNumBlocks(), clientModel->getNumBlocksOfPeers());
-        connect(clientModel, SIGNAL(numBlocksChanged(int,int)), this, SLOT(setNumBlocks(int,int)));
+        setNumBlocks(clientModel->getNumBlocks());
+        connect(clientModel, SIGNAL(numBlocksChanged(int)), this, SLOT(setNumBlocks(int)));
 
         // Report errors from network/worker thread
         connect(clientModel, SIGNAL(error(QString,QString,bool)), this, SLOT(error(QString,QString,bool)));
@@ -534,7 +534,7 @@ void BitcoinGUI::setNumConnections(int count)
     labelConnectionsIcon->setToolTip(tr("%n active connection(s) to Clam network", "", count));
 }
 
-void BitcoinGUI::setNumBlocks(int count, int nTotalBlocks)
+void BitcoinGUI::setNumBlocks(int count)
 {
     // don't show / hide progress bar and its label if we have no connection to the network
     if (!clientModel || clientModel->getNumConnections() == 0)
@@ -586,30 +586,10 @@ void BitcoinGUI::setNumBlocks(int count, int nTotalBlocks)
     int secs = lastBlockDate.secsTo(QDateTime::currentDateTime());
     QString text;
 
-    // Represent time from last generated block in human readable text
-    if(secs <= 0)
-    {
-        // Fully up to date. Leave text empty.
-    }
-    else if(secs < 60)
-    {
-        text = tr("%n second(s) ago","",secs);
-    }
-    else if(secs < 60*60)
-    {
-        text = tr("%n minute(s) ago","",secs/60);
-    }
-    else if(secs < 24*60*60)
-    {
-        text = tr("%n hour(s) ago","",secs/(60*60));
-    }
-    else
-    {
-        text = tr("%n day(s) ago","",secs/(60*60*24));
-    }
+    tooltip = tr("Processed %1 blocks of transaction history.").arg(count);
 
     // Set icon state: spinning if catching up, tick otherwise
-    if(secs < 90*60 && count >= nTotalBlocks)
+    if(secs < 90*60)
     {
         tooltip = tr("Up to date") + QString(".<br>") + tooltip;
         labelBlocksIcon->setPixmap(QIcon(":/icons/synced").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
