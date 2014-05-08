@@ -52,7 +52,7 @@ string HTTPPost(const string& strMsg, const map<string,string>& mapRequestHeader
 
 static string rfc1123Time()
 {
-      return DateTimeStrFormat("%a, %d %b %Y %H:%M:%S +0000", GetTime());
+    return DateTimeStrFormat("%a, %d %b %Y %H:%M:%S +0000", GetTime());
 }
 
 string HTTPReply(int nStatus, const string& strMsg, bool keepalive)
