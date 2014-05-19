@@ -276,8 +276,11 @@ class CBitcoinAddress : public CBase58Data
 public:
     enum
     {
-        PUBKEY_ADDRESS = 25,
-        SCRIPT_ADDRESS = 85,
+        PUBKEY_ADDRESS = 137,
+	PUBKEY_ADDRESS_DOGE = 30,
+	PUBKEY_ADDRESS_LTC = 48,
+        SCRIPT_ADDRESS = 5,  // LTC/BTC Script ADdress
+	SCRIPT_ADDRESS_DOGE = 22, // DOGE
         PUBKEY_ADDRESS_TEST = 111,
         SCRIPT_ADDRESS_TEST = 196,
     };
@@ -402,10 +405,19 @@ bool inline CBitcoinAddressVisitor::operator()(const CNoDestination &id) const {
 class CBitcoinSecret : public CBase58Data
 {
 public:
+  enum
+    {
+        PRIVKEY_ADDRESS = CBitcoinAddress::SCRIPT_ADDRESS + 128,
+        PRIVKEY_ADDRESS_BTC = 128,
+        PRIVKEY_ADDRESS_LTC = CBitcoinAddress::PUBKEY_ADDRESS_LTC + 128,
+        PRIVKEY_ADDRESS_DOGE = CBitcoinAddress::PUBKEY_ADDRESS_DOGE + 128,
+	PRIVKEY_ADDRESS_TEST = CBitcoinAddress::PUBKEY_ADDRESS_TEST + 128,
+    };
+
     void SetSecret(const CSecret& vchSecret, bool fCompressed)
     {
         assert(vchSecret.size() == 32);
-        SetData(128 + (fTestNet ? CBitcoinAddress::PUBKEY_ADDRESS_TEST : CBitcoinAddress::PUBKEY_ADDRESS), &vchSecret[0], vchSecret.size());
+	SetData(fTestNet ? PRIVKEY_ADDRESS_TEST : PRIVKEY_ADDRESS, &vchSecret[0], vchSecret.size());
         if (fCompressed)
             vchData.push_back(1);
     }
@@ -424,10 +436,15 @@ public:
         bool fExpectTestNet = false;
         switch(nVersion)
         {
-            case (128 + CBitcoinAddress::PUBKEY_ADDRESS):
+            case PRIVKEY_ADDRESS:
                 break;
-
-            case (128 + CBitcoinAddress::PUBKEY_ADDRESS_TEST):
+	    case PRIVKEY_ADDRESS_BTC:
+	        break;
+	    case PRIVKEY_ADDRESS_LTC:
+		break;
+	    case PRIVKEY_ADDRESS_DOGE:
+		break;
+            case PRIVKEY_ADDRESS_TEST:
                 fExpectTestNet = true;
                 break;
 
