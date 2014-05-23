@@ -524,7 +524,7 @@ void StakeMiner(CWallet *pwallet)
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
 
     // Make this thread recognisable as the mining thread
-    RenameThread("blackcoin-miner");
+    RenameThread("clam-miner");
 
     bool fTryToSync = true;
 
