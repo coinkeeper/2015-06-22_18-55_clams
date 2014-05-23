@@ -41,7 +41,7 @@ CBigNum bnProofOfStakeLimit(~uint256(0) >> 20);
 CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 
 unsigned int nTargetSpacing = 1 * 5; // 1 minute
-unsigned int nTargetSpacingV2 = 1 * 60; // 60 seconds
+unsigned int nTargetStakeSpacing = 1 * 60; // 60 seconds
 unsigned int nStakeMinAge = 4 * 60 * 60; // 8 hours
 unsigned int nStakeMaxAge = -1; // unlimited
 unsigned int nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
@@ -1042,7 +1042,7 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
 static unsigned int GetNextTargetRequiredV1(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit;
-    int64_t currentTargetSpacing = fProofOfStake ? nTargetStakeSpacing : nTargetSpacing;
+    int64_t currentTargetSpacing = nTargetSpacing;
 
     if (pindexLast == NULL)
         return bnTargetLimit.GetCompact(); // genesis block
@@ -1076,7 +1076,7 @@ static unsigned int GetNextTargetRequiredV1(const CBlockIndex* pindexLast, bool 
 static unsigned int GetNextTargetRequiredV2(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit;
-    int64_t currentTargetSpacing = nTargetSpacingV2;
+    int64_t currentTargetSpacing = nTargetStakeSpacing;
 
     if (pindexLast == NULL)
         return bnTargetLimit.GetCompact(); // genesis block
@@ -1097,7 +1097,7 @@ static unsigned int GetNextTargetRequiredV2(const CBlockIndex* pindexLast, bool 
     CBigNum bnNew;
     bnNew.SetCompact(pindexPrev->nBits);
     int64_t nInterval = nTargetTimespan / currentTargetSpacing;
-    bnNew *= ((nInterval - 1) * currnentTargetSpacing + nActualSpacing + nActualSpacing);
+    bnNew *= ((nInterval - 1) * currentTargetSpacing + nActualSpacing + nActualSpacing);
     bnNew /= ((nInterval + 1) * currentTargetSpacing);
 
     if (bnNew <= 0 || bnNew > bnTargetLimit)
@@ -2495,6 +2495,8 @@ FILE* AppendBlockFile(unsigned int& nFileRet)
 
 bool LoadBlockIndex(bool fAllowNew)
 {
+    CBigNum bnTrustedModulus;
+
     if (fTestNet)
     {
         pchMessageStart[0] = 0xc4;
