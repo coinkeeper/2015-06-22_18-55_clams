@@ -20,7 +20,6 @@ Value getsubsidy(const Array& params, bool fHelp)
             "getsubsidy [nTarget]\n"
             "Returns proof-of-work subsidy value for the specified value of target.");
 
-
     if (params.size() != 0)
     {
         CBigNum bnTarget(uint256(params[0].get_str()));
