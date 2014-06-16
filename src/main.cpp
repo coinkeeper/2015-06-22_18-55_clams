@@ -547,9 +547,9 @@ int64_t CTransaction::GetMinFee(unsigned int nBlockSize, enum GetMinFee_mode mod
         nMinFee = MAX_MONEY;
     return nMinFee;
 }
- 
- 
-bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx, bool fCheckInputs,
+
+
+bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx,
                         bool* pfMissingInputs)
 {
     AssertLockHeld(cs_main);
@@ -577,10 +577,10 @@ bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx, bool fCheckInputs,
         if (mapTx.count(hash))
             return false;
     }
-    if (fCheckInputs)
-        if (txdb.ContainsTx(hash))
-            return false;
- 
+
+    if (txdb.ContainsTx(hash))
+        return false;
+
     // Check for conflicts with in-memory transactions
     CTransaction* ptxOld = NULL;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
@@ -608,8 +608,7 @@ bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx, bool fCheckInputs,
             break;
         }
     }
- 
-    if (fCheckInputs)
+
     {
         MapPrevTx mapInputs;
         map<uint256, CTxIndex> mapUnused;
@@ -695,10 +694,10 @@ bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx, bool fCheckInputs,
            mapTx.size());
     return true;
 }
- 
-bool CTransaction::AcceptToMemoryPool(CTxDB& txdb, bool fCheckInputs, bool* pfMissingInputs)
+
+bool CTransaction::AcceptToMemoryPool(CTxDB& txdb, bool* pfMissingInputs)
 {
-    return mempool.accept(txdb, *this, fCheckInputs, pfMissingInputs);
+    return mempool.accept(txdb, *this, pfMissingInputs);
 }
  
 bool CTxMemPool::addUnchecked(const uint256& hash, CTransaction &tx)
@@ -817,11 +816,11 @@ int CMerkleTx::GetBlocksToMaturity() const
         return 0;
     return max(0, (nCoinbaseMaturity+10) - GetDepthInMainChain());
 }
- 
- 
-bool CMerkleTx::AcceptToMemoryPool(CTxDB& txdb, bool fCheckInputs)
+
+
+bool CMerkleTx::AcceptToMemoryPool(CTxDB& txdb)
 {
-    return CTransaction::AcceptToMemoryPool(txdb, fCheckInputs);
+    return CTransaction::AcceptToMemoryPool(txdb);
 }
  
 bool CMerkleTx::AcceptToMemoryPool()
@@ -830,9 +829,10 @@ bool CMerkleTx::AcceptToMemoryPool()
     return AcceptToMemoryPool(txdb);
 }
  
- 
- 
-bool CWalletTx::AcceptWalletTransaction(CTxDB& txdb, bool fCheckInputs)
+
+
+
+bool CWalletTx::AcceptWalletTransaction(CTxDB& txdb)
 {
  
     {
@@ -843,10 +843,10 @@ bool CWalletTx::AcceptWalletTransaction(CTxDB& txdb, bool fCheckInputs)
             {
                 uint256 hash = tx.GetHash();
                 if (!mempool.exists(hash) && !txdb.ContainsTx(hash))
-                    tx.AcceptToMemoryPool(txdb, fCheckInputs);
+                    tx.AcceptToMemoryPool(txdb);
             }
         }
-        return AcceptToMemoryPool(txdb, fCheckInputs);
+        return AcceptToMemoryPool(txdb);
     }
     return false;
 }
@@ -1736,7 +1736,7 @@ bool static Reorganize(CTxDB& txdb, CBlockIndex* pindexNew)
 
     // Resurrect memory transactions that were in the disconnected branch
     BOOST_FOREACH(CTransaction& tx, vResurrect)
-        tx.AcceptToMemoryPool(txdb, false);
+        tx.AcceptToMemoryPool(txdb);
 
     // Delete redundant memory transactions that are in the connected branch
     BOOST_FOREACH(CTransaction& tx, vDelete) {
@@ -3282,7 +3282,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         pfrom->AddInventoryKnown(inv);
 
         bool fMissingInputs = false;
-        if (tx.AcceptToMemoryPool(txdb, true, &fMissingInputs))
+        if (tx.AcceptToMemoryPool(txdb, &fMissingInputs))
         {
             SyncWithWallets(tx, NULL, true);
             RelayTransaction(tx, inv.hash);
@@ -3302,7 +3302,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                     CTransaction& orphanTx = mapOrphanTransactions[orphanTxHash];
                     bool fMissingInputs2 = false;
 
-                    if (orphanTx.AcceptToMemoryPool(txdb, true, &fMissingInputs2))
+                    if (orphanTx.AcceptToMemoryPool(txdb, &fMissingInputs2))
                     {
                         printf("   accepted orphan tx %s\n", orphanTxHash.ToString().substr(0,10).c_str());
                         SyncWithWallets(tx, NULL, true);
