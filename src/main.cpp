@@ -15,6 +15,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 
 
 using namespace std;
@@ -75,6 +78,18 @@ const string strMessageMagic = "Clam Signed Message:\n";
 int64_t nTransactionFee = MIN_TX_FEE;
 int64_t nReserveBalance = 0;
 int64_t nMinimumInputValue = 0;
+
+static const int NUM_OF_POW_CHECKPOINT = 6;
+static const int checkpointPoWHeight[NUM_OF_POW_CHECKPOINT][2] =
+{
+    { 25000,  5587},
+    { 50000,  9027},
+    { 75000, 12354},
+    {100000, 15639},
+    {125000, 18946},
+    {150000, 22309}
+};
+
 
 extern enum Checkpoints::CPMode CheckpointsMode;
 
@@ -964,6 +979,14 @@ uint256 WantedByOrphan(const CBlock* pblockOrphan)
     return pblockOrphan->hashPrevBlock;
 }
 
+int generateMTRandom(unsigned int s, int range)
+{
+    random::mt19937 gen(s);
+    random::uniform_int_distribution<> dist(1, range);
+    return dist(gen);
+}
+
+
 // miner's coin base reward
 int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 {
@@ -979,16 +1002,68 @@ int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 
     return nSubsidy + nFees;
 }
+const int LOTTERY_START = 25900;
 
 // miner's coin stake reward based on coin age spent (coin-days)
-int64_t GetProofOfStakeReward(int64_t nCoinAge, int64_t nFees)
+int64_t GetProofOfStakeReward(int nHeight, int64_t nCoinAge, int64_t nFees)
 {
-    int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8);
+    if(pindex->nHeight < LOTTERY_START){
+    
+            int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8);
 
-    if (fDebug && GetBoolArg("-printcreation"))
-        printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
+            if (fDebug && GetBoolArg("-printcreation"))
+                printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
 
-    return nSubsidy + nFees;
+            return nSubsidy + nFees;
+      
+    } else {
+        
+        int tierOne = 2
+        int tierTwo = 26
+        int tierThree = 99
+        int tierFour = 829
+        int tierFive = 18349
+        int tierSix = 123469
+        int64_t nSubsidy = 1
+        
+        uint256 hash = pindex->GetBlockHash();
+        std::string cseed_str = hash.ToString().substr(12,7);
+        const char* cseed = cseed_str.c_str();
+        long seed = hex2long(cseed);
+        int random = generateMTRandom(seed, 1051200);
+        
+        if(random <= tierOne AND > 0){
+        
+            nSubsidy = 5256000000000;
+        
+        }elseif(random <= tierTwo AND > tierOne){
+        
+            nSubsidy = 438000000000;
+        
+        }elseif(random <= tierThree AND > tierTwo){
+        
+            nSubsidy = 144000000000;
+        
+        }elseif(random <= tierFour AND > tierThree){
+        
+            nSubsidy = 14400000000;
+        
+        }elseif(random <= tierFive AND > tierFour){
+        
+            nSubsidy = 600000000;
+        
+        }elseif(random <= tierSix AND > tierFive){
+        
+            nSubsidy = 100000000;
+        
+        }else{
+        
+            nSubsidy = 10000000;
+        
+        }
+    
+    }
+
 }
 
 static const int64_t nTargetTimespan = 16 * 60;  // 16 mins
@@ -1615,7 +1690,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
         if (!vtx[1].GetCoinAge(txdb, nCoinAge))
             return error("ConnectBlock() : %s unable to get coin age for coinstake", vtx[1].GetHash().ToString().substr(0,10).c_str());
 
-        int64_t nCalculatedStakeReward = GetProofOfStakeReward(nCoinAge, nFees);
+        int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nCoinAge, nFees);
 
         if (nStakeReward > nCalculatedStakeReward)
             return DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%"PRId64" vs calculated=%"PRId64")", nStakeReward, nCalculatedStakeReward));
