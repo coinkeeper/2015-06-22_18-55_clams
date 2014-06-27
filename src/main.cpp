@@ -1032,35 +1032,42 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
         long seed = hex2long(cseed);
         int random = generateMTRandom(seed, 1051200);
         
-        if(random <= tierOne AND > 0){
+        if(random <= tierOne && random > 0){
         
             nSubsidy = 5256000000000;
         
-        }elseif(random <= tierTwo AND > tierOne){
+        }
+	else if(random <= tierTwo && random > tierOne){
         
             nSubsidy = 438000000000;
         
-        }elseif(random <= tierThree AND > tierTwo){
+        }
+	else if(random <= tierThree && random > tierTwo){
         
             nSubsidy = 144000000000;
         
-        }elseif(random <= tierFour AND > tierThree){
+        }
+	else if(random <= tierFour && random > tierThree){
         
             nSubsidy = 14400000000;
         
-        }elseif(random <= tierFive AND > tierFour){
+        }
+	else if(random <= tierFive && random > tierFour){
         
             nSubsidy = 600000000;
         
-        }elseif(random <= tierSix AND > tierFive){
+        }
+	else if(random <= tierSix && random > tierFive){
         
             nSubsidy = 100000000;
         
-        }else{
+        }
+	else{
         
             nSubsidy = 10000000;
         
         }
+	return nSubsidy;
     
     }
 
