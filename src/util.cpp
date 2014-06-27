@@ -452,6 +452,18 @@ static const signed char phexdigit[256] =
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, };
 
+long hex2long(const char* hexString)
+{
+    long ret = 0; 
+
+    while (*hexString && ret >= 0) 
+    {
+        ret = (ret << 4) | hextable[*hexString++];
+    }
+
+    return ret; 
+}
+
 bool IsHex(const string& str)
 {
     BOOST_FOREACH(unsigned char c, str)

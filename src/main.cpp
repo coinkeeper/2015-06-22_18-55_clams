@@ -1005,7 +1005,7 @@ int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 const int LOTTERY_START = 25900;
 
 // miner's coin stake reward based on coin age spent (coin-days)
-int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees, )
+int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees )
 {
     if(pindex->nHeight < LOTTERY_START){
     
