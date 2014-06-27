@@ -1007,7 +1007,7 @@ const int LOTTERY_START = 25900;
 // miner's coin stake reward based on coin age spent (coin-days)
 int64_t GetProofOfStakeReward(int nHeight, int64_t nCoinAge, int64_t nFees)
 {
-    if(pindex->nHeight < LOTTERY_START){
+    if(nHeight < LOTTERY_START){
     
             int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8);
 
@@ -1018,13 +1018,13 @@ int64_t GetProofOfStakeReward(int nHeight, int64_t nCoinAge, int64_t nFees)
       
     } else {
         
-        int tierOne = 2
-        int tierTwo = 26
-        int tierThree = 99
-        int tierFour = 829
-        int tierFive = 18349
-        int tierSix = 123469
-        int64_t nSubsidy = 1
+        int tierOne = 2;
+        int tierTwo = 26;
+        int tierThree = 99;
+        int tierFour = 829;
+        int tierFive = 18349;
+        int tierSix = 123469;
+        int64_t nSubsidy = 1;
         
         uint256 hash = pindex->GetBlockHash();
         std::string cseed_str = hash.ToString().substr(12,7);
