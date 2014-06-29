@@ -49,7 +49,7 @@ unsigned int nStakeMinAge = 4 * 60 * 60; // 8 hours
 unsigned int nStakeMaxAge = -1; // unlimited
 unsigned int nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
-int nCoinbaseMaturity = 500;
+int nCoinbaseMaturity = 100;
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 
@@ -978,86 +978,70 @@ int generateMTRandom(unsigned int s, int range)
 // miner's coin base reward
 int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 {
-    int64_t nSubsidy = 2.15652173 * COIN;
-    if (nHeight < 4551  ) {
-      nSubsidy = 3284 * COIN;
-    } else if (nHeight < 9551) {
-        nSubsidy = 2.15652173 * COIN;
-   }
-
+    int64_t nSubsidy = 10000 * COIN;
+    
     if (fDebug && GetBoolArg("-printcreation"))
         printf("GetProofOfWorkReward() : create=%s nSubsidy=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nSubsidy);
 
     return nSubsidy + nFees;
 }
-const int LOTTERY_START = 25900;
+const int LOTTERY_START = 200;
 
 // miner's coin stake reward based on coin age spent (coin-days)
 int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees )
 {
-    if(pindex->nHeight < LOTTERY_START){
-    
-            int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8);
-
-            if (fDebug && GetBoolArg("-printcreation"))
-                printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
-
-            return nSubsidy + nFees;
+    if(pindex->nHeight < LOTTERY_START){ 
       
-    } else {
+        int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8); 
+  
+        if (fDebug && GetBoolArg("-printcreation")) 
+            printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge); 
+  
+        return nSubsidy + nFees; 
         
-        int tierOne = 2;
-        int tierTwo = 26;
-        int tierThree = 99;
-        int tierFour = 829;
-        int tierFive = 18349;
-        int tierSix = 123469;
-        int64_t nSubsidy = 1;
-        
-        uint256 hash = pindex->GetBlockHash();
-        std::string cseed_str = hash.ToString().substr(12,7);
-        const char* cseed = cseed_str.c_str();
-        long seed = hex2long(cseed);
-        int random = generateMTRandom(seed, 1051200);
-        
-        if(random <= tierOne && random > 0){
-        
-            nSubsidy = 5256000000000;
-        
-        }
-	else if(random <= tierTwo && random > tierOne){
-        
-            nSubsidy = 438000000000;
-        
-        }
-	else if(random <= tierThree && random > tierTwo){
-        
-            nSubsidy = 144000000000;
-        
-        }
-	else if(random <= tierFour && random > tierThree){
-        
-            nSubsidy = 14400000000;
-        
-        }
-	else if(random <= tierFive && random > tierFour){
-        
-            nSubsidy = 600000000;
-        
-        }
-	else if(random <= tierSix && random > tierFive){
-        
-            nSubsidy = 100000000;
-        
-        }
-	else{
-        
-            nSubsidy = 10000000;
-        
-        }
-	return nSubsidy;
-    
-    }
+    } else { 
+          
+        //Declare Constants, Should be moved into the headers and ensure there are no collisions, Scott?? 
+        const int randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.  
+        const int64_t maxReward = 1000000000000; //10,000 CLAMS 
+        const int64_t minReward = 100000000; //1 CLAM 
+        const int64_t multFactor = 5000; //Exponential Curve Factor 
+          
+        //Randomize based on blockHash 
+        uint256 hash = pindex->GetBlockHash(); 
+        std::string cseed_str = hash.ToString().substr(12,7); 
+        const char* cseed = cseed_str.c_str(); 
+        long seed = hex2long(cseed); 
+        int random = generateMTRandom(seed, randSpan); 
+          
+        //Create our reward coEfficient 
+        int64_t randCoefficient = random / randSpan; 
+          
+        //Get an exponential Reward within our parameters based on coEfficient 
+        int64_t nSubsidy = (maxReward - minReward) * pow(randCoefficient, multFactor) + minReward; 
+          
+        //Sanity Checks, If they happen: "We're All Going To Die" 
+          
+        if(nSubsidy < minReward){ 
+              
+            //If less than minReward, == 1 CLAM 
+            nSubsidy = minReward; 
+          
+        } else if(nSubsidy > maxReward) { 
+          
+            //If more than maxReward, == 1 CLAM 
+            nSubsidy = minReward; 
+          
+        } else { 
+          
+            nSubsidy = ceil(nSubsidy); 
+          
+        } 
+          
+        //Return the block reward plus fees. 
+        return nSubsidy + nFees; 
+      
+    } 
 
 }
 
