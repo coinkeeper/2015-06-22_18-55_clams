@@ -44,12 +44,12 @@ CBigNum bnProofOfStakeLimit(~uint256(0) >> 20);
 CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 
 unsigned int nTargetSpacing = 1 * 5; // 1 minute
-unsigned int nTargetStakeSpacing = 1 * 60; // 60 seconds
-unsigned int nStakeMinAge = 4 * 60 * 60; // 8 hours
+unsigned int nTargetStakeSpacing = 1 * 5; // 60 seconds
+unsigned int nStakeMinAge = 1; // 8 hours
 unsigned int nStakeMaxAge = -1; // unlimited
-unsigned int nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
+unsigned int nModifierInterval = 1 * 60; // time to elapse before new modifier is computed
 
-int nCoinbaseMaturity = 100;
+int nCoinbaseMaturity = 5;
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 
@@ -985,7 +985,7 @@ int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 
     return nSubsidy + nFees;
 }
-const int LOTTERY_START = 200;
+const int LOTTERY_START = 315;
 
 // miner's coin stake reward based on coin age spent (coin-days)
 int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees )
@@ -1002,10 +1002,10 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
     } else { 
           
         //Declare Constants, Should be moved into the headers and ensure there are no collisions, Scott?? 
-        const int randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.  
+        const int64_t randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.  
         const int64_t maxReward = 1000000000000; //10,000 CLAMS 
         const int64_t minReward = 100000000; //1 CLAM 
-        const int64_t multFactor = 5000; //Exponential Curve Factor 
+        //double multFactor = 10000; //Exponential Curve Factor 
           
         //Randomize based on blockHash 
         uint256 hash = pindex->GetBlockHash(); 
@@ -1014,27 +1014,37 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
         long seed = hex2long(cseed); 
         int random = generateMTRandom(seed, randSpan); 
           
+        printf("random=%d randSpan=%"PRId64"\n", random, randSpan); 
         //Create our reward coEfficient 
-        int64_t randCoefficient = random / randSpan; 
+        double randCoefficient = (double)random / (double)randSpan; 
+        printf("randCoeffiecient=%f\n", randCoefficient); 
           
-        //Get an exponential Reward within our parameters based on coEfficient 
-        int64_t nSubsidy = (maxReward - minReward) * pow(randCoefficient, multFactor) + minReward; 
+    	int64_t nSubsidy = pow(minReward*(1000), randCoefficient);
+        //int64_t nSubsidy = (pow(multFactor, randCoefficient) + minReward)/minReward; 
+        printf("nSubsidy=%"PRId64"\n", nSubsidy); 
           
         //Sanity Checks, If they happen: "We're All Going To Die" 
           
         if(nSubsidy < minReward){ 
-              
+            printf("WTF Shouldn't be here maaaaaaaaan\n"); 
+            printf("before Minization nSubsidy=%"PRId64"\n", nSubsidy); 
             //If less than minReward, == 1 CLAM 
             nSubsidy = minReward; 
           
         } else if(nSubsidy > maxReward) { 
+            printf("To big you say???  well tell me how you like this!\n"); 
           
             //If more than maxReward, == 1 CLAM 
             nSubsidy = minReward; 
           
         } else { 
+        	printf("Hit the Fucking ceiling man\n"); 
           
+            printf("before nSubsidy=%"PRId64"\n", nSubsidy); 
+
             nSubsidy = ceil(nSubsidy); 
+            printf("after nSubsidy=%"PRId64"\n", nSubsidy); 
+           
           
         } 
           
