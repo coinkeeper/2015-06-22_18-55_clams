@@ -1005,23 +1005,27 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
         const int64_t randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.  
         const int64_t maxReward = 1000000000000; //10,000 CLAMS 
         const int64_t minReward = 100000000; //1 CLAM 
-        //double multFactor = 10000; //Exponential Curve Factor 
+        double multFactor = 10; //Exponential Curve Factor 
           
         //Randomize based on blockHash 
         uint256 hash = pindex->GetBlockHash(); 
         std::string cseed_str = hash.ToString().substr(12,7); 
         const char* cseed = cseed_str.c_str(); 
+	printf("\n\nhash=%s ", cseed);
         long seed = hex2long(cseed); 
+	printf("hex2long=%"PRId64" ", seed);
         int random = generateMTRandom(seed, randSpan); 
           
-        printf("random=%d randSpan=%"PRId64"\n", random, randSpan); 
+        printf("random=%d randSpan=%"PRId64" ", random, randSpan); 
         //Create our reward coEfficient 
         double randCoefficient = (double)random / (double)randSpan; 
-        printf("randCoeffiecient=%f\n", randCoefficient); 
+        printf("randCoeffiecient=%1.11f ", randCoefficient); 
+	double nCoefficient = pow(randCoefficient, multFactor);
+        printf("nCoeffiecient=%1.11f ", nCoefficient); 
           
-    	int64_t nSubsidy = pow(minReward*(1000), randCoefficient);
-        //int64_t nSubsidy = (pow(multFactor, randCoefficient) + minReward)/minReward; 
-        printf("nSubsidy=%"PRId64"\n", nSubsidy); 
+    	//int64_t nSubsidy = pow(minReward*(1000), randCoefficient);
+        int64_t nSubsidy = ceil(((maxReward - minReward) * nCoefficient) + minReward); 
+        printf("nSubsidy=%"PRId64"\n\n", nSubsidy); 
           
         //Sanity Checks, If they happen: "We're All Going To Die" 
           
@@ -1033,15 +1037,11 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
           
         } else if(nSubsidy > maxReward) { 
             printf("To big you say???  well tell me how you like this!\n"); 
-          
             //If more than maxReward, == 1 CLAM 
             nSubsidy = minReward; 
           
         } else { 
-        	printf("Hit the Fucking ceiling man\n"); 
-          
-            printf("before nSubsidy=%"PRId64"\n", nSubsidy); 
-
+            printf("Hit the Fucking ceiling man\n"); 
             nSubsidy = ceil(nSubsidy); 
             printf("after nSubsidy=%"PRId64"\n", nSubsidy); 
            
