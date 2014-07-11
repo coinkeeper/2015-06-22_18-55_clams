@@ -2,32 +2,25 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-TARGET_PLATFORM:=i586
-#TARGET_PLATFORM:=x86_64
-DEPSDIR:=/usr/i586-mingw32msvc
+DEPSDIR:=/usr/i686-w64-mingw32
 
-CC:=$(TARGET_PLATFORM)-mingw32msvc-gcc
-CXX:=$(TARGET_PLATFORM)-mingw32msvc-g++
-RANLIB=$(TARGET_PLATFORM)-mingw32msvc-ranlib
-STRIP=$(TARGET_PLATFORM)-mingw32msvc-strip
+CC := i686-w64-mingw32-gcc
+CXX := i686-w64-mingw32-g++
 
 USE_UPNP:=0
 USE_IPV6:=1
 
 INCLUDEPATHS= \
- -I"$(CURDIR)" \
- -I"$(CURDIR)"/obj \
- -I"$(DEPSDIR)/boost_1_47_0" \
- -I"$(DEPSDIR)/db-4.8.30.NC/build_unix" \
- -I"$(DEPSDIR)/openssl-1.0.1g/include" \
- -I"$(DEPSDIR)"
+   -I"$(CURDIR)" \
+   -I"$(CURDIR)"/obj \
+   -I"$(DEPSDIR)/include" \
+   -I"$(DEPSDIR)"
 
 LIBPATHS= \
- -L"$(DEPSDIR)/boost_1_47_0/stage/lib" \
- -L"$(DEPSDIR)/db-4.8.30.NC/build_unix" \
- -L"$(DEPSDIR)/openssl-1.0.1g"
+ -L"$(DEPSDIR)/lib"
 
 LIBS= \
+  $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a \
  -l boost_system-mt-s \
  -l boost_filesystem-mt-s \
  -l boost_program_options-mt-s \
@@ -37,10 +30,11 @@ LIBS= \
  -l ssl \
  -l crypto
 
+
 DEFS=-D_MT -DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE
 DEBUGFLAGS=-g
-CFLAGS=-O3 -msse2 -w -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter $(DEBUGFLAGS) $(DEFS) $(INCLUDEPATHS)
-LDFLAGS=-Wl,--dynamicbase -Wl,--nxcompat -static-libgcc 
+xCXXFLAGS=-O2 -msse2 -w -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter $(DEBUGFLAGS) $(DEFS) $(INCLUDEPATHS) $(CXXFLAGS)
+xLDFLAGS=-Wl,--dynamicbase -Wl,--nxcompat -Wl,--large-address-aware -static-libgcc -static-libstdc++ $(LDFLAGS)
 
 ifndef USE_UPNP
 	override USE_UPNP = -
@@ -105,20 +99,26 @@ OBJS= \
     obj/zerocoin/SpendMetaData.o \
     obj/zerocoin/ZeroTest.o
 
+ifdef USE_SSE2
+DEFS += -DUSE_SSE2
+OBJS_SSE2= obj/scrypt-sse2.o
+OBJS += $(OBJS_SSE2)
+endif
+
 all: clamd.exe
 
-LIBS += $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a
 DEFS += -I"$(CURDIR)/leveldb/include"
 DEFS += -I"$(CURDIR)/leveldb/helpers"
-OBJS += obj/txdb-leveldb.o
 leveldb/libleveldb.a:
 	@echo "Building LevelDB ..." && cd leveldb && CC=$(CC) CXX=$(CXX) TARGET_OS=OS_WINDOWS_CROSSCOMPILE CXXFLAGS="-I$(INCLUDEPATHS)" LDFLAGS="-L$(LIBPATHS)" $(MAKE) libleveldb.a libmemenv.a && $(RANLIB) libleveldb.a && $(RANLIB) libmemenv.a && cd ..
-obj/txdb-leveldb.o: leveldb/libleveldb.a
 
 obj/build.h: FORCE
 	/bin/sh ../share/genbuild.sh obj/build.h
 version.cpp: obj/build.h
 DEFS += -DHAVE_BUILD_INFO
+
+obj/%-sse2.o: %-sse2.cpp
+	$(CXX) -c $(xCXXFLAGS) -msse2 -mstackrealign -o $@ $<
 
 obj/%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CFLAGS) -o $@ $<
