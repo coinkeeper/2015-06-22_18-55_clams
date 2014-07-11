@@ -11,12 +11,16 @@ USE_UPNP:=0
 USE_IPV6:=1
 
 INCLUDEPATHS= \
-		-I"$(CURDIR)" \
-		-I"$(CURDIR)"/obj \
-		-I"$(DEPSDIR)/home/ubuntu/staging" \
-		-I"$(DEPSDIR)/db-4.8.30.NC/build_unix" \
-		-I"$(DEPSDIR)/openssl-1.0.1g/include" \
-		 -I"$(DEPSDIR)"
+			   -I"$(CURDIR)" \
+			    -I"$(CURDIR)"/obj \
+				 -I"$c:/deps/boost_1_55_0" \
+				  -I"$c:/deps/boost_1_55_0/boost" \
+				   -I"$c:/deps/boost_1_55_0/boost/algorithm/string/" \
+				    -I"$c:/deps/boost_1_55_0/libs" \
+					 -I"$c:/deps/boost_1_55_0/stage/lib" \
+					  -I"$c:/deps/db-4.8.30.NC/build_unix" \
+					   -I"$c:/deps/openssl-1.0.1g/include" \
+					    -I"$c:/deps"
 
 LIBPATHS= \
   -L"$(DEPSDIR)/home/ubuntu/staging" \
