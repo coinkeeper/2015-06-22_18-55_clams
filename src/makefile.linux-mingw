@@ -11,13 +11,18 @@ USE_UPNP:=0
 USE_IPV6:=1
 
 INCLUDEPATHS= \
-   -I"$(CURDIR)" \
-   -I"$(CURDIR)"/obj \
-   -I"$(DEPSDIR)/include" \
-   -I"$(DEPSDIR)"
+		-I"$(CURDIR)" \
+		-I"$(CURDIR)"/obj \
+		-I"$(DEPSDIR)/home/ubuntu/staging" \
+		-I"$(DEPSDIR)/db-4.8.30.NC/build_unix" \
+		-I"$(DEPSDIR)/openssl-1.0.1g/include" \
+		 -I"$(DEPSDIR)"
 
 LIBPATHS= \
- -L"$(DEPSDIR)/lib"
+  -L"$(DEPSDIR)/home/ubuntu/staging" \
+  -L"$(DEPSDIR)/db-4.8.30.NC/build_unix" \
+  -L"$(DEPSDIR)/openssl-1.0.1g"
+
 
 LIBS= \
   $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a \
