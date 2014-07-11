@@ -990,7 +990,7 @@ int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
 
     return nSubsidy + nFees;
 }
-const int LOTTERY_START = 33500;
+const int LOTTERY_START = 34000;
  
 // miner's coin stake reward based on coin age spent (coin-days)
 int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees )
