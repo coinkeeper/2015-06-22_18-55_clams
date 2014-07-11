@@ -1008,7 +1008,7 @@ int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64
  
         //Declare Constants, Should be moved into the headers and ensure there are no collisions, Scott??
         const int64_t randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.
-        const int64_t maxReward = 100000000000; //1000 CLAMS
+        const int64_t maxReward = 1000 * COIN; //1000 CLAMS
         const int64_t minReward = 10000000; //.1 CLAM
         double multFactor = 3000; //Exponential Curve Factor
  
