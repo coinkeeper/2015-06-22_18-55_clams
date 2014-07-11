@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 0.8.4
+!define VERSION 1.4.2
 !define COMPANY "The Clam project"
 !define URL http://www.clams.info/
 
@@ -45,13 +45,13 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile clam-0.8.4-win32-setup.exe
+OutFile clam-1.4.2-win32-setup.exe
 InstallDir $PROGRAMFILES\Clam
 CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 0.8.4.0
+VIProductVersion 0.1.4.2
 VIAddVersionKey ProductName Clam
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"
