@@ -387,7 +387,7 @@ Value importwalletdat(const Array& params, bool fHelp)
         pwalletImport->GetKeys(setKeys);
 
         BOOST_FOREACH(const CKeyID &keyid, setKeys) {
-            int64_t nTime = GetTimeMillis();
+            int64_t nTime = GetTime();
             bool IsCompressed;
             std::string strAddr = CBitcoinAddress(keyid).ToString();
             std::string strLabel = "importwallet";
@@ -415,7 +415,7 @@ Value importwalletdat(const Array& params, bool fHelp)
 
     printf("Rescanning last %i blocks (from block %i)...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
     nStart = GetTimeMillis();
-    pwalletMain->ScanForWalletTransactions(pindexRescan);
+    pwalletMain->ScanForWalletTransactions(pindexRescan, true, true);
     pwalletMain->ReacceptWalletTransactions();
     pwalletMain->MarkDirty();
 

@@ -61,12 +61,17 @@ bool CWallet::AddKey(const CKey& key)
 {
     CPubKey pubkey = key.GetPubKey();
 
-    if (!CCryptoKeyStore::AddKey(key))
+    if (!CCryptoKeyStore::AddKey(key)) {
+        printf("InAddKeys\n");
         return false;
-    if (!fFileBacked)
+    }
+    if (!fFileBacked) {
         return true;
-    if (!IsCrypted())
+    }
+    if (!IsCrypted()) {
+        printf("not encrypted?\n");
         return CWalletDB(strWalletFile).WriteKey(pubkey, key.GetPrivKey(), mapKeyMetadata[pubkey.GetID()]);
+    }
     return true;
 }
 
@@ -839,7 +844,7 @@ bool CWalletTx::WriteToDisk()
 // Scan the block chain (starting in pindexStart) for transactions
 // from or to us. If fUpdate is true, found transactions that already
 // exist in the wallet will be updated.
-int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate)
+int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate, bool fImport)
 {
     int ret = 0;
 
@@ -850,11 +855,12 @@ int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate)
         {
             // no need to read and scan block, if block was created before
             // our wallet birthday (as adjusted for block time variability)
-            if (nTimeFirstKey && (pindex->nTime < (nTimeFirstKey - 7200))) {
-                pindex = pindex->pnext;
-                continue;
+            if(!fImport) {
+                if (nTimeFirstKey && (pindex->nTime < (nTimeFirstKey - 7200))) {
+                    pindex = pindex->pnext;
+                    continue;
+                }
             }
-
             CBlock block;
             block.ReadFromDisk(pindex, true);
             BOOST_FOREACH(CTransaction& tx, block.vtx)
