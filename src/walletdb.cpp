@@ -715,7 +715,6 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
                     result = DB_CORRUPT;
                 } else
                 {
-                    printf("Errors out the wazoo");
                     // Leave other errors alone, if we try to fix them we might make things worse.
                     fNoncriticalErrors = true; // ... but do warn the user there is something wrong.
                 }

@@ -1909,7 +1909,7 @@ DBErrors CWallet::LoadWalletImport(bool& fFirstRunRet)
     if (!fFileBacked)
         return DB_LOAD_OK;
     fFirstRunRet = false;
-    DBErrors nLoadWalletRet = CWalletDB(strWalletFile,"cr+").LoadWalletImport(this);
+    DBErrors nLoadWalletRet = CWalletDB(strWalletFile,"r+").LoadWalletImport(this);
     if (nLoadWalletRet != DB_LOAD_OK) {
         return nLoadWalletRet;
     }
