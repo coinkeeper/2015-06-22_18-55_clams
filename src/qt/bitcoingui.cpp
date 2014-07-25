@@ -941,8 +941,9 @@ void BitcoinGUI::updateStakingIcon()
 
     if (nLastCoinStakeSearchInterval && nWeight)
     {
+        uint64_t nEstimateTime;
+        pwalletMain->GetExpectedStakeTime(nEstimateTime);
         uint64_t nNetworkWeight = GetPoSKernelPS();
-        unsigned nEstimateTime = nTargetStakeSpacing * nNetworkWeight / nWeight;
 
         QString text;
         if (nEstimateTime < 60)
