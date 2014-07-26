@@ -77,7 +77,10 @@ Value getstakinginfo(const Array& params, bool fHelp)
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
     bool staking = nLastCoinStakeSearchInterval && nWeight;
-    int nExpectedTime = staking ? (nTargetSpacing * nNetworkWeight / nWeight) : -1;
+    uint64_t nExpectedTime;
+
+    if (staking)
+        pwalletMain->GetExpectedStakeTime(nExpectedTime);
 
     Object obj;
 
@@ -95,7 +98,7 @@ Value getstakinginfo(const Array& params, bool fHelp)
     obj.push_back(Pair("weight", (uint64_t)nWeight));
     obj.push_back(Pair("netstakeweight", (uint64_t)nNetworkWeight));
 
-    obj.push_back(Pair("expectedtime", nExpectedTime));
+    obj.push_back(Pair("expectedtime", staking ? int(nExpectedTime) : -1));
 
     return obj;
 }
