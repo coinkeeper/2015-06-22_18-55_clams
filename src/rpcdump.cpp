@@ -163,11 +163,11 @@ Value importprivkey(const Array& params, bool fHelp)
     return Value::null;
 }
 
-Value importwallet(const Array& params, bool fHelp)
+Value importwalletdump(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "importwallet <filename>\n"
+            "importwalletdump <filename>\n"
             "Imports keys from a wallet dump file (see dumpwallet).");
 
     EnsureWalletIsUnlocked();
@@ -338,12 +338,13 @@ Value dumpwallet(const Array& params, bool fHelp)
     return Value::null;
 }
 
-Value importwalletdat(const Array& params, bool fHelp)
+Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
-            "importwalletdat <file> \n"
-            "Import wallet.dat from BTC/LTC/DOGE \n"
+            "importwalletd <file> [walletpassword]\n"
+            "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
+            "Password is only required if wallet is encrypted\n"
         );
 
     CBlockIndex *pindexRescan = pindexGenesisBlock;
@@ -355,26 +356,6 @@ Value importwalletdat(const Array& params, bool fHelp)
     pwalletImport = new CWallet(params[0].get_str().c_str());
     DBErrors nLoadWalletRet = pwalletImport->LoadWalletImport(fFirstRun);
 
-    // Handle encrypted wallets. Wallest first need to be unlocked before the keys
-    // can be added into your clam wallet. 
-    if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
-        SecureString strWalletPass;
-        strWalletPass.reserve(100);
-        if (params.size() > 1)
-            strWalletPass = params[1].get_str().c_str();
-        else         
-            throw JSONRPCError(RPC_WALLET_ERROR, "You must enter a password to unlock your wallet for importing.");
-
-        if (strWalletPass.length() > 0)
-        {
-            if (!pwalletImport->Unlock(strWalletPass))
-                throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
-        } else {
-            throw JSONRPCError(RPC_WALLET_ERROR,
-                "importwalletdat <file> <passphrase> Your attempting to import a encrypted wallet. A password for the wallet your attemping to import is required.");
-        }
-    }
-
     std::ostringstream strErrors;
     if (nLoadWalletRet != DB_LOAD_OK)
         {
@@ -382,10 +363,30 @@ Value importwalletdat(const Array& params, bool fHelp)
                 throw JSONRPCError(RPC_WALLET_ERROR, "Error loading wallet.dat: Wallet corrupted");
             else if (nLoadWalletRet == DB_LOAD_FAIL)
             {
-                throw JSONRPCError(RPC_WALLET_ERROR, "Walletfile failed to load");
+                throw JSONRPCError(RPC_WALLET_ERROR, "Wallet failed to load");
             }
             else
                 printf("Non fatal errors loading wallet file\n");
+    }
+
+    // Handle encrypted wallets. Wallest first need to be unlocked before the keys
+    // can be added into your clam wallet. 
+    if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
+        SecureString strWalletPass;
+        strWalletPass.reserve(100);
+        strWalletPass = params[1].get_str().c_str();
+        if (strWalletPass.length() > 0)
+        {
+            if (!pwalletImport->Unlock(strWalletPass))
+                throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
+        } else {
+                    throw runtime_error(
+                        "importwallet <file> <walletpassword>\n"
+                        "Import encrypted wallet from BTC/LTC/DOGE \n\n"
+                        "You are attemping to import a encrypted password\n"
+                        "The password must be entered to properly import the wallet\n"
+                    );
+        }
     }
 
     {
@@ -396,8 +397,10 @@ Value importwalletdat(const Array& params, bool fHelp)
         pwalletImport->GetKeys(setKeys);
 
         BOOST_FOREACH(const CKeyID &keyid, setKeys) {
+            
             int64_t nTime = GetTime();
             bool IsCompressed;
+
             std::string strAddr = CBitcoinAddress(keyid).ToString();
             std::string strLabel = "importwallet";
 
@@ -410,7 +413,10 @@ Value importwalletdat(const Array& params, bool fHelp)
                 }
 
                 CSecret secret = key.GetSecret(IsCompressed);
-                printf("Importing %s...\n", strAddr.c_str());
+                
+                if(fDebug) 
+                    printf("Importing %s...\n", strAddr.c_str());
+
                 pwalletMain->AddKey(key);
                 pwalletMain->SetAddressBookName(keyid, strLabel);
                 pwalletMain->mapKeyMetadata[keyid].nCreateTime = nTime;
@@ -418,15 +424,17 @@ Value importwalletdat(const Array& params, bool fHelp)
         }
     }
     
+    // Clean up unregistered wallet
     UnregisterWallet(pwalletImport);
     delete pwalletImport;
 
-    printf("Rescanning last %i blocks (from block %i)...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
+    printf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
     nStart = GetTimeMillis();
     pwalletMain->ScanForWalletTransactions(pindexRescan, true, true);
     pwalletMain->ReacceptWalletTransactions();
     pwalletMain->MarkDirty();
-    printf("Rescan Complete     %15"PRId64"ms\n", GetTimeMillis() - nStart);
+    printf("Rescan Complete    %15"PRId64"ms\n", GetTimeMillis() - nStart);
 
     return Value::null;
 }
+
