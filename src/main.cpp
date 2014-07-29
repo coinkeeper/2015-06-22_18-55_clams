@@ -1235,7 +1235,6 @@ void static InvalidChainFound(CBlockIndex* pindexNew)
     {
         nBestInvalidTrust = pindexNew->nChainTrust;
         CTxDB().WriteBestInvalidTrust(CBigNum(nBestInvalidTrust));
-        uiInterface.NotifyBlocksChanged();
     }
  
     uint256 nBestInvalidBlockTrust = pindexNew->nChainTrust - pindexNew->pprev->nChainTrust;
@@ -2044,7 +2043,6 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos, const u
         hashPrevBestCoinBase = vtx[0].GetHash();
     }
 
-    uiInterface.NotifyBlocksChanged();
     return true;
 }
 
