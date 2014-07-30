@@ -342,7 +342,7 @@ Value importwallet(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "importwalletd <file> [walletpassword]\n"
+            "importwallet <file> [walletpassword]\n"
             "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
             "Password is only required if wallet is encrypted\n"
         );
