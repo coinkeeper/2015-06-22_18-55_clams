@@ -56,6 +56,7 @@
 #include <QDragEnterEvent>
 #include <QUrl>
 #include <QStyle>
+#include <QInputDialog>
 
 #include <iostream>
 
@@ -280,12 +281,15 @@ void BitcoinGUI::createActions()
     signMessageAction = new QAction(QIcon(":/icons/edit"), tr("Sign &message..."), this);
     verifyMessageAction = new QAction(QIcon(":/icons/transaction_0"), tr("&Verify message..."), this);
 
+    importAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Import Wallet..."), this);
+    importAction->setToolTip(tr("Import a wallet by .dat file."));
     exportAction = new QAction(QIcon(":/icons/export"), tr("&Export..."), this);
     exportAction->setToolTip(tr("Export the data in the current tab to a file"));
     openRPCConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug window"), this);
     openRPCConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
 
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
+    connect(importAction, SIGNAL(triggered()), this, SLOT(importWallet()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
     connect(optionsAction, SIGNAL(triggered()), this, SLOT(optionsClicked()));
@@ -312,6 +316,7 @@ void BitcoinGUI::createMenuBar()
     // Configure the menus
     QMenu *file = appMenuBar->addMenu(tr("&File"));
     file->addAction(backupWalletAction);
+    file->addAction(importAction);
     file->addAction(exportAction);
     file->addAction(signMessageAction);
     file->addAction(verifyMessageAction);
@@ -859,6 +864,53 @@ void BitcoinGUI::backupWallet()
             QMessageBox::warning(this, tr("Backup Failed"), tr("There was an error trying to save the wallet data to the new location."));
         }
     }
+}
+
+void BitcoinGUI::importWallet()
+{
+    QString workDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+    QString filename = QFileDialog::getOpenFileName(this, tr("Import Wallet"), workDir, tr("Wallet Data (*.dat)"));
+    QString passwd;
+    bool isValidWallet = false;
+    bool isDialogOk = false;
+
+    if(filename.isEmpty()) {
+        QMessageBox::warning(this, tr("Import Failed"), tr("Wallet is empty."));
+        return;
+    }
+
+    /** Attempt to begin the import, and detect fails */
+    CWallet *openWallet = new CWallet(filename.toStdString());
+    DBErrors importRet = openWallet->LoadWalletImport(isValidWallet);
+
+    if (!isValidWallet || importRet != DB_LOAD_OK) {
+        QMessageBox::warning(this, tr("Import Failed"), tr("Failed to import new wallet."));
+        return;
+    }
+
+    /** Prompt for password, if necessary */
+    if (openWallet->IsCrypted() && openWallet->IsLocked()) {
+        /**
+         * This was some "correct" code I didn't quite get it working. Not too elegant because
+         * you can't make a QtDialog from RPCDump level without making things messier.
+         *
+        WalletModel *tmpModel = new WalletModel(openWallet,);
+        AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, ,this);
+        dlg.setModel(tmpModel);
+        dlg.exec();
+        */
+
+         passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password );
+    }
+    QString rpcCmd = QString("importwallet %1 %2")
+                        .arg(filename).arg(passwd);
+    passwd.clear();
+
+    /** Threadlock friendly handoff to RPC */
+    if (isDialogOk)
+        emit rpcConsole->cmdRequest(rpcCmd);
+
+    rpcCmd.clear();
 }
 
 void BitcoinGUI::changePassphrase()

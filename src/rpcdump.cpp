@@ -369,7 +369,7 @@ Value importwallet(const Array& params, bool fHelp)
                 printf("Non fatal errors loading wallet file\n");
     }
 
-    // Handle encrypted wallets. Wallest first need to be unlocked before the keys
+    // Handle encrypted wallets. Wallets first need to be unlocked before the keys
     // can be added into your clam wallet. 
     if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
         SecureString strWalletPass;
