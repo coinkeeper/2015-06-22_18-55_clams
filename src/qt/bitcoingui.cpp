@@ -871,25 +871,27 @@ void BitcoinGUI::importWallet()
     QString workDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
     QString filename = QFileDialog::getOpenFileName(this, tr("Import Wallet"), workDir, tr("Wallet Data (*.dat)"));
     QString passwd;
+    QString rpcCmd;
+    bool isDialogOk = true;
     bool isValidWallet = false;
-    bool isDialogOk = false;
 
-    if(filename.isEmpty()) {
-        QMessageBox::warning(this, tr("Import Failed"), tr("Wallet is empty."));
+    /** Cancel pressed */
+    if(filename.isEmpty())
         return;
-    }
 
     /** Attempt to begin the import, and detect fails */
     CWallet *openWallet = new CWallet(filename.toStdString());
     DBErrors importRet = openWallet->LoadWalletImport(isValidWallet);
 
-    if (!isValidWallet || importRet != DB_LOAD_OK) {
-        QMessageBox::warning(this, tr("Import Failed"), tr("Failed to import new wallet."));
+    if (!isValidWallet || importRet != DB_LOAD_OK)
+    {
+        QMessageBox::warning(this, tr("Import Failed"), tr("Wallet import failed."));
         return;
     }
 
     /** Prompt for password, if necessary */
-    if (openWallet->IsCrypted() && openWallet->IsLocked()) {
+    if (openWallet->IsCrypted() && openWallet->IsLocked())
+    {
         /**
          * This was some "correct" code I didn't quite get it working. Not too elegant because
          * you can't make a QtDialog from RPCDump level without making things messier.
@@ -900,16 +902,17 @@ void BitcoinGUI::importWallet()
         dlg.exec();
         */
 
-         passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password );
+         passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password, QString(), &isDialogOk );
     }
-    QString rpcCmd = QString("importwallet %1 %2")
-                        .arg(filename).arg(passwd);
+
+    rpcCmd = QString("importwallet %1 %2")
+            .arg(filename)
+            .arg(passwd);
     passwd.clear();
 
     /** Threadlock friendly handoff to RPC */
     if (isDialogOk)
         emit rpcConsole->cmdRequest(rpcCmd);
-
     rpcCmd.clear();
 }
 
