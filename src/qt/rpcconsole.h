@@ -19,6 +19,9 @@ public:
 
     void setClientModel(ClientModel *model);
 
+    /** Workaround for Qt 4.8. Fixed in Qt5 */
+    void cmdRequestFar(const QString &command);
+
     enum MessageClass {
         MC_ERROR,
         MC_DEBUG,
