@@ -902,7 +902,7 @@ void BitcoinGUI::importWallet()
         dlg.exec();
         */
 
-         passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password, QString(), &isDialogOk );
+         passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password);
     }
 
     rpcCmd = QString("importwallet %1 %2")
@@ -911,8 +911,7 @@ void BitcoinGUI::importWallet()
     passwd.clear();
 
     /** Threadlock friendly handoff to RPC */
-    if (isDialogOk)
-        rpcConsole->cmdRequestFar(rpcCmd);
+    rpcConsole->cmdRequestFar(rpcCmd);
     rpcCmd.clear();
 }
 
