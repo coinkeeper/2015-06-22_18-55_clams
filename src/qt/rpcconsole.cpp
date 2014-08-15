@@ -137,6 +137,12 @@ bool parseCommandLine(std::vector<std::string> &args, const std::string &strComm
     }
 }
 
+/** In Qt4, calling a threaded far emit causes issues. Fixed in Qt5 */
+void RPCConsole::cmdRequestFar(const QString &command)
+{
+    emit cmdRequest(command);
+}
+
 void RPCExecutor::request(const QString &command)
 {
     std::vector<std::string> args;
