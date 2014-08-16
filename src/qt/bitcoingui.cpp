@@ -872,7 +872,6 @@ void BitcoinGUI::importWallet()
     QString filename = QFileDialog::getOpenFileName(this, tr("Import Wallet"), workDir, tr("Wallet Data (*.dat)"));
     QString passwd;
     QString rpcCmd;
-    bool isDialogOk = true;
     bool isValidWallet = false;
 
     /** Cancel pressed */
