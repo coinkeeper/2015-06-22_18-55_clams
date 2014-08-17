@@ -340,7 +340,7 @@ Value dumpwallet(const Array& params, bool fHelp)
 
 Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 1)
+    if (fHelp)
         throw runtime_error(
             "importwallet <file> [walletpassword]\n"
             "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
@@ -369,7 +369,7 @@ Value importwallet(const Array& params, bool fHelp)
                 printf("Non fatal errors loading wallet file\n");
     }
 
-    // Handle encrypted wallets. Wallest first need to be unlocked before the keys
+    // Handle encrypted wallets. Wallets first need to be unlocked before the keys
     // can be added into your clam wallet. 
     if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
         SecureString strWalletPass;

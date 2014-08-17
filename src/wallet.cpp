@@ -62,14 +62,12 @@ bool CWallet::AddKey(const CKey& key)
     CPubKey pubkey = key.GetPubKey();
 
     if (!CCryptoKeyStore::AddKey(key)) {
-        printf("InAddKeys\n");
         return false;
     }
     if (!fFileBacked) {
         return true;
     }
     if (!IsCrypted()) {
-        printf("not encrypted?\n");
         return CWalletDB(strWalletFile).WriteKey(pubkey, key.GetPrivKey(), mapKeyMetadata[pubkey.GetID()]);
     }
     return true;

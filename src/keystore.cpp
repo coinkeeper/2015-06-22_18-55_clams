@@ -173,7 +173,6 @@ bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
             const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
             CSecret vchSecret;
             if (!DecryptSecret(vMasterKey, vchCryptedSecret, vchPubKey.GetHash(), vchSecret)) {
-                printf("Decryptsecret failed: Your current wallet password must match the password of the wallet your importing.\n");
                 return false;
             }
             if (vchSecret.size() != 32) {
