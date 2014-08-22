@@ -360,9 +360,22 @@ void BitcoinGUI::createToolBars()
     toolbar->addAction(historyAction);
     toolbar->addAction(addressBookAction);
 
-    QToolBar *toolbar2 = addToolBar(tr("Actions toolbar"));
-    toolbar2->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolbar2->addAction(exportAction);
+    toolbar->addWidget(makeToolBarSpacer());
+
+    toolbar->setOrientation(Qt::Vertical);
+    toolbar->setMovable(false);
+
+    addToolBar(Qt::LeftToolBarArea, toolbar);
+
+    int w = 0;
+
+    foreach(QAction *action, toolbar->actions()) {
+        w = std::max(w, toolbar->widgetForAction(action)->width());
+    }
+
+    foreach(QAction *action, toolbar->actions()) {
+        toolbar->widgetForAction(action)->setFixedWidth(w);
+    }
 }
 
 void BitcoinGUI::setClientModel(ClientModel *clientModel)
