@@ -62,7 +62,10 @@ static const uint256 hashGenesisBlockTestNet("0x0000135b14723652fecaeb07a52cebf3
 inline bool IsProtocolV2(int nHeight) { return nHeight > 225000; }
 
 inline int64_t PastDrift(int64_t nTime, int nHeight)   { return IsProtocolV2(nHeight) ? nTime      : nTime - 10 * 60; }
-inline int64_t FutureDrift(int64_t nTime, int nHeight) { return IsProtocolV2(nHeight) ? nTime + 15 : nTime + 10 * 60; }
+
+inline int64_t FutureDriftV1(int64_t nTime) { return nTime + 10 * 60; }
+inline int64_t FutureDriftV2(int64_t nTime) { return nTime + 15; }
+inline int64_t FutureDrift(int64_t nTime, int nHeight) { return IsProtocolV2(nHeight) ? FutureDriftV2(nTime) : FutureDriftV1(nTime); }
 
 
 extern CScript COINBASE_FLAGS;
