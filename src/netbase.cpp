@@ -922,11 +922,6 @@ uint64_t CNetAddr::GetHash() const
     return nRet;
 }
 
-void CNetAddr::print() const
-{
-    LogPrintf("CNetAddr(%s)\n", ToString().c_str());
-}
-
 // private extensions to enum Network, only returned by GetExtNetwork,
 // and only used in GetReachabilityFrom
 static const int NET_UNKNOWN = NET_MAX + 0;
@@ -1167,11 +1162,6 @@ std::string CService::ToStringIPPort() const
 std::string CService::ToString() const
 {
     return ToStringIPPort();
-}
-
-void CService::print() const
-{
-    LogPrintf("CService(%s)\n", ToString().c_str());
 }
 
 void CService::SetPort(unsigned short portIn)
