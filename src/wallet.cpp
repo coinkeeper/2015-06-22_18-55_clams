@@ -136,7 +136,7 @@ bool CWallet::LoadCScript(const CScript& redeemScript)
     {
         std::string strAddr = CBitcoinAddress(redeemScript.GetID()).ToString();
         LogPrintf("%s: Warning: This wallet contains a redeemScript of size %"PRIszu" which exceeds maximum size %i thus can never be redeemed. Do not use address %s.\n",
-            __func__, redeemScript.size(), MAX_SCRIPT_ELEMENT_SIZE, strAddr.c_str());
+            __func__, redeemScript.size(), MAX_SCRIPT_ELEMENT_SIZE, strAddr);
         return true;
     }
 
@@ -1025,7 +1025,7 @@ void CWallet::ResendWalletTransactions(bool fForce)
             if (wtx.CheckTransaction())
                 wtx.RelayWalletTransaction(txdb);
             else
-                LogPrintf("ResendWalletTransactions() : CheckTransaction failed for transaction %s\n", wtx.GetHash().ToString().c_str());
+                LogPrintf("ResendWalletTransactions() : CheckTransaction failed for transaction %s\n", wtx.GetHash().ToString());
         }
     }
 }
@@ -2137,7 +2137,7 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
     if (fWalletUnlockStakingOnly)
     {
         string strError = _("Error: Wallet unlocked for staking only, unable to create transaction.");
-        LogPrintf("SendMoney() : %s", strError.c_str());
+        LogPrintf("SendMoney() : %s", strError);
         return strError;
     }
     if (!CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired))
@@ -2568,7 +2568,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64_t& nBalanceInQuestion, bo
             if (IsMine(pcoin->vout[n]) && pcoin->IsSpent(n) && (txindex.vSpent.size() <= n || txindex.vSpent[n].IsNull()))
             {
                 LogPrintf("FixSpentCoins found lost coin %s CLAM %s[%d], %s\n",
-                    FormatMoney(pcoin->vout[n].nValue).c_str(), pcoin->GetHash().ToString().c_str(), n, fCheckOnly? "repair not attempted" : "repairing");
+                    FormatMoney(pcoin->vout[n].nValue).c_str(), pcoin->GetHash().ToString(), n, fCheckOnly? "repair not attempted" : "repairing");
                 nMismatchFound++;
                 nBalanceInQuestion += pcoin->vout[n].nValue;
                 if (!fCheckOnly)
@@ -2580,7 +2580,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64_t& nBalanceInQuestion, bo
             else if (IsMine(pcoin->vout[n]) && !pcoin->IsSpent(n) && (txindex.vSpent.size() > n && !txindex.vSpent[n].IsNull()))
             {
                 LogPrintf("FixSpentCoins found spent coin %s CLAM %s[%d], %s\n",
-                    FormatMoney(pcoin->vout[n].nValue).c_str(), pcoin->GetHash().ToString().c_str(), n, fCheckOnly? "repair not attempted" : "repairing");
+                    FormatMoney(pcoin->vout[n].nValue).c_str(), pcoin->GetHash().ToString(), n, fCheckOnly? "repair not attempted" : "repairing");
                 nMismatchFound++;
                 nBalanceInQuestion += pcoin->vout[n].nValue;
                 if (!fCheckOnly)

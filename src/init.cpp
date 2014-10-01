@@ -407,7 +407,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     if (mapArgs.count("-mininput"))
     {
         if (!ParseMoney(mapArgs["-mininput"], nMinimumInputValue))
-            return InitError(strprintf(_("Invalid amount for -mininput=<amount>: '%s'"), mapArgs["-mininput"].c_str()));
+            return InitError(strprintf(_("Invalid amount for -mininput=<amount>: '%s'"), mapArgs["-mininput"]));
     }
 
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
@@ -686,7 +686,7 @@ bool AppInit2(boost::thread_group& threadGroup)
         else if (nLoadWalletRet == DB_NEED_REWRITE)
         {
             strErrors << _("Wallet needed to be rewritten: restart Clam to complete") << "\n";
-            printf("%s", strErrors.str().c_str());
+            LogPrintf("%s", strErrors.str());
             return InitError(strErrors.str());
         }
         else
@@ -722,7 +722,7 @@ bool AppInit2(boost::thread_group& threadGroup)
         }
     }
 
-    LogPrintf("%s", strErrors.str().c_str());
+    LogPrintf("%s", strErrors.str());
     LogPrintf(" wallet      %15"PRId64"ms\n", GetTimeMillis() - nStart);
 
     RegisterWallet(pwalletMain);
