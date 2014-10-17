@@ -815,7 +815,6 @@ bool AppInit2(boost::thread_group& threadGroup)
             if (file)
                 LoadExternalBlockFile(file);
         }
-        exit(0);
     }
 
     filesystem::path pathBootstrap = GetDataDir() / "bootstrap.dat";
