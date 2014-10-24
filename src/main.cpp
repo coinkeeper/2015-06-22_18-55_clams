@@ -991,20 +991,27 @@ int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
     return nSubsidy + nFees;
 }
 const int LOTTERY_START = 34000;
- 
+const int LOTTERY_END = 170000;
+
 // miner's coin stake reward based on coin age spent (coin-days)
 int64_t GetProofOfStakeReward(const CBlockIndex* pindex, int64_t nCoinAge, int64_t nFees )
 {
     if(pindex->nHeight < LOTTERY_START){
- 
+
         int64_t nSubsidy = nCoinAge * COIN_YEAR_REWARD * 33 / (365 * 33 + 8);
- 
+
         if (fDebug && GetBoolArg("-printcreation"))
             printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
- 
+
         return nSubsidy + nFees;
- 
+
+    } else if (pindex->nHeight > LOTTERY_END) {
+
+        int64_t nSubsidy = 1 * COIN;
+        return nSubsidy + nFees;
+
     } else {
+
         const int64_t randSpan = 2147483647; //Big Number, its unclear but possable correlates to the amount of clams that have ever existed.
         const int64_t maxReward = 1000 * COIN; //1000 CLAMS
         const int64_t minReward = 10000000; //.1 CLAM
