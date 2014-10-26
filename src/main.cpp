@@ -303,7 +303,6 @@ bool CTransaction::IsStandard() const
 
     // Disallow large transaction comments
     if (strTxComment.length() > MAX_TX_COMMENT_LEN) {
-        strReason = "tx-comment-length";
         return false;
     }
  
