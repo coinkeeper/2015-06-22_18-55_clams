@@ -666,7 +666,7 @@ void BitcoinGUI::askFee(qint64 nFeeRequired, bool *payFee)
     *payFee = (retval == QMessageBox::Yes);
 }
 
-void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int end)
+void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int end, const QString& txcomment)
 {
     if(!walletModel || !clientModel)
         return;
@@ -697,7 +697,7 @@ void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int 
                               .arg(date)
                               .arg(BitcoinUnits::formatWithUnit(walletModel->getOptionsModel()->getDisplayUnit(), amount, true))
                               .arg(type)
-                              .arg(address), icon);
+                              .arg(address + (txcomment.length() > 0 ? ("\n" + txcomment) : "")), icon);
     }
 }
 

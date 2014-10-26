@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
  
+#include "main.h"
 #include "alert.h"
 #include "checkpoints.h"
 #include "db.h"
@@ -299,6 +300,12 @@ bool CTransaction::IsStandard() const
 {
     if (nVersion > CTransaction::CURRENT_VERSION)
         return false;
+
+    // Disallow large transaction comments
+    if (strTxComment.length() > MAX_TX_COMMENT_LEN) {
+        strReason = "tx-comment-length";
+        return false;
+    }
  
     BOOST_FOREACH(const CTxIn& txin, vin)
     {
