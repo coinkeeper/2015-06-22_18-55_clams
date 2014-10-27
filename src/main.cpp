@@ -2608,6 +2608,7 @@ bool LoadBlockIndex(bool fAllowNew)
         // Genesis block
         const char* pszTimestamp = "14/Apr/2014 No chowder for you, cause clams have feelings too";
         CTransaction txNew;
+        txNew.nVersion = 1;
         txNew.nTime = 1397512438;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
