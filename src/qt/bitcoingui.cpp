@@ -683,9 +683,12 @@ void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int 
                         .data().toString();
         QString address = ttm->index(start, TransactionTableModel::ToAddress, parent)
                         .data().toString();
+        QString txcomment = ttm->index(start, TransactionTableModel::TxComment, parent)
+                        .data().toString();
         QIcon icon = qvariant_cast<QIcon>(ttm->index(start,
                             TransactionTableModel::ToAddress, parent)
                         .data(Qt::DecorationRole));
+
 
         notificator->notify(Notificator::Information,
                             (amount)<0 ? tr("Sent transaction") :
