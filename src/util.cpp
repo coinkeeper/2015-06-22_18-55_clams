@@ -11,6 +11,8 @@
 #include "uint256.h"
 #include "version.h"
 
+#include <algorithm>
+
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp> // for startswith() and endswith()
@@ -66,7 +68,7 @@ map<string, string> mapArgs;
 map<string, vector<string> > mapMultiArgs;
 bool fDebug = false;
 bool fPrintToConsole = false;
-bool fPrintToDebugger = false;
+bool fPrintToDebugLog = true;
 bool fDaemon = false;
 bool fServer = false;
 bool fCommandLine = false;
@@ -74,7 +76,6 @@ string strMiscWarning;
 bool fNoListen = false;
 bool fLogTimestamps = false;
 volatile bool fReopenDebugLog = false;
-bool fCachedPath[2] = {false, false};
 
 // Init OpenSSL library multithreading support
 static CCriticalSection** ppmutexOpenSSL;
@@ -254,7 +255,7 @@ int LogPrintStr(const std::string &str)
         // print to console
         ret = fwrite(str.data(), 1, str.size(), stdout);
     }
-    else if (!fPrintToDebugger)
+    else if (fPrintToDebugLog)
     {
         static bool fStartedNewLine = true;
         boost::call_once(&DebugPrintInit, debugPrintInitFlag);
@@ -283,29 +284,6 @@ int LogPrintStr(const std::string &str)
         ret = fwrite(str.data(), 1, str.size(), fileout);
     }
 
-#ifdef WIN32
-    if (fPrintToDebugger)
-    {
-        // accumulate and output a line at a time
-        static std::string buffer;
-
-        boost::mutex::scoped_lock scoped_lock(*mutexDebugLog);
-
-        va_list arg_ptr;
-        va_start(arg_ptr, pszFormat);
-        buffer += vstrprintf(pszFormat, arg_ptr);
-        va_end(arg_ptr);
-
-        int line_start = 0, line_end;
-        while((line_end = buffer.find('\n', line_start)) != -1)
-        {
-            OutputDebugStringA(buffer.substr(line_start, line_end - line_start).c_str());
-            line_start = line_end + 1;
-            ret += line_end-line_start;
-        }
-        buffer.erase(0, line_start);
-    }
-#endif
     return ret;
 }
 
@@ -1036,21 +1014,23 @@ boost::filesystem::path GetDefaultDataDir()
 #endif
 }
 
+static boost::filesystem::path pathCached[CChainParams::MAX_NETWORK_TYPES+1];
+static CCriticalSection csPathCached;
+
 const boost::filesystem::path &GetDataDir(bool fNetSpecific)
 {
     namespace fs = boost::filesystem;
+    LOCK(csPathCached);
 
-    static fs::path pathCached[2];
-    static CCriticalSection csPathCached;
+    int nNet = CChainParams::MAX_NETWORK_TYPES;
+    if (fNetSpecific) nNet = Params().NetworkID();
 
-    fs::path &path = pathCached[fNetSpecific];
+    fs::path &path = pathCached[nNet];
 
     // This can be called during exceptions by LogPrintf(), so we cache the
     // value so we don't have to do memory allocations after that.
-    if (fCachedPath[fNetSpecific])
+    if (!path.empty())
         return path;
-
-    LOCK(csPathCached);
 
     if (mapArgs.count("-datadir")) {
         path = fs::system_complete(mapArgs["-datadir"]);
@@ -1066,9 +1046,15 @@ const boost::filesystem::path &GetDataDir(bool fNetSpecific)
 
     fs::create_directory(path);
 
-    fCachedPath[fNetSpecific] = true;
     return path;
 }
+
+void ClearDatadirCache()
+{
+    std::fill(&pathCached[0], &pathCached[CChainParams::MAX_NETWORK_TYPES+1],
+              boost::filesystem::path());
+}
+
 
 boost::filesystem::path GetConfigFile()
 {
@@ -1084,8 +1070,6 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
     if (!streamConfig.good())
         return; // No bitcoin.conf file is OK
 
-    // clear path cache after loading config file
-    fCachedPath[0] = fCachedPath[1] = false;
 
     set<string> setOptions;
     setOptions.insert("*");
@@ -1102,6 +1086,8 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
         }
         mapMultiSettingsRet[strKey].push_back(it->value[0]);
     }
+    // If datadir is changed in .conf file:
+    ClearDatadirCache();
 }
 
 boost::filesystem::path GetPidFile()

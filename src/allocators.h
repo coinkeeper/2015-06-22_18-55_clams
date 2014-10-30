@@ -176,15 +176,6 @@ private:
     {}
 };
 
-template<typename T> void LockObject(const T &t) {
-    LockedPageManager::instance.LockRange((void*)(&t), sizeof(T));
-}
-
-template<typename T> void UnlockObject(const T &t) {
-    OPENSSL_cleanse((void*)(&t), sizeof(T));
-    LockedPageManager::instance.UnlockRange((void*)(&t), sizeof(T));
-}
-
 //
 // Functions for directly locking/unlocking memory objects.
 // Intended for non-dynamically allocated structures.

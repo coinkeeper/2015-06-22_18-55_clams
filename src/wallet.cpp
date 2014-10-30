@@ -81,12 +81,10 @@ bool CWallet::AddKeyPubKey(const CKey& secret, const CPubKey &pubkey)
     AssertLockHeld(cs_wallet); // mapKeyMetadata
     if (!CCryptoKeyStore::AddKeyPubKey(secret, pubkey))
         return false;
-    }
-    if (!fFileBacked) {
+    if (!fFileBacked) 
         return true;
-    if (!IsCrypted()) {
+    if (!IsCrypted()) 
         return CWalletDB(strWalletFile).WriteKey(pubkey, secret.GetPrivKey(), mapKeyMetadata[pubkey.GetID()]);
-    }
     return true;
 }
 
@@ -874,7 +872,7 @@ bool CWalletTx::WriteToDisk()
 // Scan the block chain (starting in pindexStart) for transactions
 // from or to us. If fUpdate is true, found transactions that already
 // exist in the wallet will be updated.
-int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate, bool fImport)
+int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate)
 {
     int ret = 0;
 
@@ -885,12 +883,10 @@ int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate, b
         {
             // no need to read and scan block, if block was created before
             // our wallet birthday (as adjusted for block time variability)
-            if(!fImport) {
                 if (nTimeFirstKey && (pindex->nTime < (nTimeFirstKey - 7200))) {
                     pindex = pindex->pnext;
                     continue;
                 }
-            }
             CBlock block;
             block.ReadFromDisk(pindex, true);
             BOOST_FOREACH(CTransaction& tx, block.vtx)
@@ -1145,13 +1141,6 @@ void CWallet::AvailableCoinsForStaking(vector<COutput>& vCoins, unsigned int nSp
             if (pcoin->nTime + nStakeMinAge > nSpendTime)
                 continue;
     
-           if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
-                    continue;
-         
-           if (pcoin->IsCoinStake() && pcoin->GetBlocksToMaturity() > 0)
-                       continue;
-
-
             if (pcoin->GetBlocksToMaturity() > 0)
                 continue;
 
@@ -1844,12 +1833,19 @@ bool CWallet::GetExpectedStakeTime(uint64_t& nExpected)
     unsigned int nBits = GetNextTargetRequired(pindexBest, true);
     CBigNum bnTarget;
     bnTarget.SetCompact(nBits);
+    
     int64_t nBalance = GetBalance();
+    if (nBalance <= nReserveBalance)
+	 return false;
+    
     set<pair<const CWalletTx*,unsigned int> > setCoins;
     int64_t nValueIn = 0;
     double fail = 1;
 
-    if (!SelectCoinsSimple(nBalance, GetTime(), 1, setCoins, nValueIn))
+    if (!SelectCoinsForStaking(nBalance - nReserveBalance, GetTime(), setCoins, nValueIn))
+        return false;
+
+    if (setCoins.empty())
         return false;
 
     CTxDB txdb("r");
@@ -1992,7 +1988,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 vwtxPrev.push_back(pcoin.first);
                 txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-                if (GetWeight(block.GetBlockTime(), (int64_t)txNew.nTime) < nStakeSplitAge)
+		if (GetWeight(block.GetBlockTime(), (int64_t)txNew.nTime) < GetStakeSplitAge())
                     txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); //split stake
                 LogPrint("coinstake", "CreateCoinStake : added kernel type=%d\n", whichType);
                 fKernelFound = true;
@@ -2020,13 +2016,13 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             if (txNew.vin.size() >= 100)
                 break;
             // Stop adding more inputs if value is already pretty significant
-            if (nCredit >= nStakeCombineThreshold)
+	    if (nCredit >= GetStakeCombineThreshold())
                 break;
             // Stop adding inputs if reached reserve limit
             if (nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)
                 break;
             // Do not add additional significant input
-            if (pcoin.first->vout[pcoin.second].nValue >= nStakeCombineThreshold)
+	    if (pcoin.first->vout[pcoin.second].nValue >= GetStakeCombineThreshold())
                 continue;
             // Do not add input that is still too young
             if (nTimeWeight < 0)

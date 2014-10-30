@@ -2,6 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <openssl/bn.h>
 #include <openssl/ecdsa.h>
 #include <openssl/rand.h>
 #include <openssl/obj_mac.h>
@@ -155,7 +156,8 @@ public:
         BN_clear_free(&bn);
     }
 
-    void GetPrivKey(CPrivKey &privkey) {
+    void GetPrivKey(CPrivKey &privkey, bool fCompressed) {
+        EC_KEY_set_conv_form(pkey, fCompressed ? POINT_CONVERSION_COMPRESSED : POINT_CONVERSION_UNCOMPRESSED);
         int nSize = i2d_ECPrivateKey(pkey, NULL);
         assert(nSize);
         privkey.resize(nSize);
@@ -164,9 +166,12 @@ public:
         assert(nSize == nSize2);
     }
 
-    bool SetPrivKey(const CPrivKey &privkey) {
+    bool SetPrivKey(const CPrivKey &privkey, bool fSkipCheck=false) {
         const unsigned char* pbegin = &privkey[0];
         if (d2i_ECPrivateKey(&pkey, &pbegin, privkey.size())) {
+            if(fSkipCheck)
+                return true;
+
             // d2i_ECPrivateKey returns true if parsing succeeds.
             // This doesn't necessarily mean the key is valid.
             if (EC_KEY_check_key(pkey))
@@ -270,6 +275,56 @@ public:
         BN_bin2bn(&p64[32], 32, sig->s);
         bool ret = ECDSA_SIG_recover_key_GFp(pkey, sig, (unsigned char*)&hash, sizeof(hash), rec, 0) == 1;
         ECDSA_SIG_free(sig);
+        return ret;
+    }
+    static bool TweakSecret(unsigned char vchSecretOut[32], const unsigned char vchSecretIn[32], const unsigned char vchTweak[32])
+    {
+        bool ret = true;
+        BN_CTX *ctx = BN_CTX_new();
+        BN_CTX_start(ctx);
+        BIGNUM *bnSecret = BN_CTX_get(ctx);
+        BIGNUM *bnTweak = BN_CTX_get(ctx);
+        BIGNUM *bnOrder = BN_CTX_get(ctx);
+        EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_secp256k1);
+        EC_GROUP_get_order(group, bnOrder, ctx); // what a grossly inefficient way to get the (constant) group order...
+        BN_bin2bn(vchTweak, 32, bnTweak);
+        if (BN_cmp(bnTweak, bnOrder) >= 0)
+            ret = false; // extremely unlikely
+        BN_bin2bn(vchSecretIn, 32, bnSecret);
+        BN_add(bnSecret, bnSecret, bnTweak);
+        BN_nnmod(bnSecret, bnSecret, bnOrder, ctx);
+        if (BN_is_zero(bnSecret))
+            ret = false; // ridiculously unlikely
+        int nBits = BN_num_bits(bnSecret);
+        memset(vchSecretOut, 0, 32);
+        BN_bn2bin(bnSecret, &vchSecretOut[32-(nBits+7)/8]);
+        EC_GROUP_free(group);
+        BN_CTX_end(ctx);
+        BN_CTX_free(ctx);
+        return ret;
+    }
+
+    bool TweakPublic(const unsigned char vchTweak[32]) {
+        bool ret = true;
+        BN_CTX *ctx = BN_CTX_new();
+        BN_CTX_start(ctx);
+        BIGNUM *bnTweak = BN_CTX_get(ctx);
+        BIGNUM *bnOrder = BN_CTX_get(ctx);
+        BIGNUM *bnOne = BN_CTX_get(ctx);
+        const EC_GROUP *group = EC_KEY_get0_group(pkey);
+        EC_GROUP_get_order(group, bnOrder, ctx); // what a grossly inefficient way to get the (constant) group order...
+        BN_bin2bn(vchTweak, 32, bnTweak);
+        if (BN_cmp(bnTweak, bnOrder) >= 0)
+            ret = false; // extremely unlikely
+        EC_POINT *point = EC_POINT_dup(EC_KEY_get0_public_key(pkey), group);
+        BN_one(bnOne);
+        EC_POINT_mul(group, point, bnTweak, point, bnOne, ctx);
+        if (EC_POINT_is_at_infinity(group, point))
+            ret = false; // ridiculously unlikely
+        EC_KEY_set_public_key(pkey, point);
+        EC_POINT_free(point);
+        BN_CTX_end(ctx);
+        BN_CTX_free(ctx);
         return ret;
     }
 };
@@ -397,7 +452,7 @@ CPrivKey CKey::GetPrivKey() const {
     CECKey key;
     key.SetSecretBytes(vch);
     CPrivKey privkey;
-    key.GetPrivKey(privkey);
+    key.GetPrivKey(privkey, fCompressed);
     return privkey;
 }
 
@@ -429,6 +484,24 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
         return false;
     assert(rec != -1);
     vchSig[0] = 27 + rec + (fCompressed ? 4 : 0);
+    return true;
+}
+
+bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
+    CECKey key;
+    if (!key.SetPrivKey(privkey, fSkipCheck))
+        return false;
+
+    key.GetSecretBytes(vch);
+    fCompressed = vchPubKey.IsCompressed();
+    fValid = true;
+
+    if (fSkipCheck)
+        return true;
+
+    if (GetPubKey() != vchPubKey)
+        return false;
+
     return true;
 }
 

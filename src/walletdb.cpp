@@ -542,57 +542,69 @@ ReadKeyValueImport(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
         }
         else if (strType == "key" || strType == "wkey")
         {
-            vector<unsigned char> vchPubKey;
+	    CPubKey vchPubKey;
             ssKey >> vchPubKey;
+            if (!vchPubKey.IsValid())
+            {
+                strErr = "Error reading wallet database: CPubKey corrupt";
+                return false;
+            }
             CKey key;
+            CPrivKey pkey;
+            uint256 hash = 0;
+
             if (strType == "key")
             {
                 wss.nKeys++;
-                CPrivKey pkey;
                 ssValue >> pkey;
-                key.SetPubKey(vchPubKey);
-                if (!key.SetPrivKey(pkey))
-                {
-                    printf("Error reading wallet database: CPrivKey corrupt");
-                    return false;
-                }
-                if (key.GetPubKey() != vchPubKey)
-                {
-                    printf("Error reading wallet database: CPrivKey pubkey inconsistency");
-                    return false;
-                }
-                if (!key.IsValid())
-                {
-                    printf("Error reading wallet database: invalid CPrivKey");
-                    return false;
-                }
-            }
-            else
-            {
+            } else {
                 CWalletKey wkey;
                 ssValue >> wkey;
-                key.SetPubKey(vchPubKey);
-                if (!key.SetPrivKey(wkey.vchPrivKey))
-                {
-                    printf("Error reading wallet database: CPrivKey corrupt");
-                    return false;
-                }
-                if (key.GetPubKey() != vchPubKey)
-                {
-                    printf("Error reading wallet database: CWalletKey pubkey inconsistency");
-                    return false;
-                }
-                if (!key.IsValid())
-                {
-                    printf("Error reading wallet database: invalid CWalletKey");
-                    return false;
-                }
+                pkey = wkey.vchPrivKey;
             }
-            if (!pwallet->LoadKey(key))
+
+            // Old wallets store keys as "key" [pubkey] => [privkey]
+            // ... which was slow for wallets with lots of keys, because the public key is re-derived from the private key
+            // using EC operations as a checksum.
+            // Newer wallets store keys as "key"[pubkey] => [privkey][hash(pubkey,privkey)], which is much faster while
+            // remaining backwards-compatible.
+            try
             {
-                printf("Error reading wallet database: LoadKey failed");
+                ssValue >> hash;
+            }
+            catch(...){}
+
+            bool fSkipCheck = false;
+
+            if (hash != 0)
+            {
+                // hash pubkey/privkey to accelerate wallet load
+                std::vector<unsigned char> vchKey;
+                vchKey.reserve(vchPubKey.size() + pkey.size());
+                vchKey.insert(vchKey.end(), vchPubKey.begin(), vchPubKey.end());
+                vchKey.insert(vchKey.end(), pkey.begin(), pkey.end());
+
+                if (Hash(vchKey.begin(), vchKey.end()) != hash)
+                {
+                    strErr = "Error reading wallet database: CPubKey/CPrivKey corrupt";
+                    return false;
+                }
+
+                fSkipCheck = true;
+            }
+
+            if (!key.Load(pkey, vchPubKey, fSkipCheck))
+            {
+                strErr = "Error reading wallet database: CPrivKey corrupt";
                 return false;
             }
+            if (!pwallet->LoadKey(key, vchPubKey))
+            {
+                strErr = "Error reading wallet database: LoadKey failed";
+                return false;
+            }
+
+
         }
         else if (strType == "mkey")
         {
@@ -625,21 +637,18 @@ ReadKeyValueImport(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
         }
         else if (strType == "pool")
         {
-            CKey key;
-            int64_t nIndex;
+	    int64_t nIndex;
             ssKey >> nIndex;
             CKeyPool keypool;
             ssValue >> keypool;
+            pwallet->setKeyPool.insert(nIndex);
 
+            // If no metadata exists yet, create a default with the pool key's
+            // creation time. Note that this may be overwritten by actually
+            // stored metadata for that key later, which is fine.
             CKeyID keyid = keypool.vchPubKey.GetID();
-            if(pwallet->GetKey(keyid, key)) {
-
-                if (!pwallet->LoadKey(key))
-                {
-                    printf("Error reading wallet database: LoadKey failed");
-                    return false;
-                }
-            }
+            if (pwallet->mapKeyMetadata.count(keyid) == 0)
+                pwallet->mapKeyMetadata[keyid] = CKeyMetadata(keypool.nTime);
 
         }
         else if (strType == "version")

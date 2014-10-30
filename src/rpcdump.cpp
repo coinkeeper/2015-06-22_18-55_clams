@@ -337,7 +337,6 @@ Value importwallet(const Array& params, bool fHelp)
     CBlockIndex *pindexRescan = pindexGenesisBlock;
     EnsureWalletIsUnlocked();
 
-    int64_t nStart;
     bool fFirstRun = false;
 
     pwalletImport = new CWallet(params[0].get_str().c_str());
@@ -386,7 +385,6 @@ Value importwallet(const Array& params, bool fHelp)
         BOOST_FOREACH(const CKeyID &keyid, setKeys) {
             
             int64_t nTime = GetTime();
-            bool IsCompressed;
 
             std::string strAddr = CBitcoinAddress(keyid).ToString();
             std::string strLabel = "importwallet";
@@ -398,9 +396,7 @@ Value importwallet(const Array& params, bool fHelp)
                      printf("Skipping import of %s (key already present)\n", strAddr.c_str());
                      continue;
                 }
-
-                CSecret secret = key.GetSecret(IsCompressed);
-                
+		
                 if(fDebug) 
                     printf("Importing %s...\n", strAddr.c_str());
 
@@ -416,11 +412,10 @@ Value importwallet(const Array& params, bool fHelp)
     delete pwalletImport;
 
     printf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
-    nStart = GetTimeMillis();
-    pwalletMain->ScanForWalletTransactions(pindexRescan, true, true);
+    pwalletMain->ScanForWalletTransactions(pindexRescan, true);
     pwalletMain->ReacceptWalletTransactions();
     pwalletMain->MarkDirty();
-    printf("Rescan Complete    %15"PRId64"ms\n", GetTimeMillis() - nStart);
+    printf("Rescan Complete\n");
 
     return Value::null;
 }

@@ -159,8 +159,11 @@ public:
     // Recover a public key from a compact signature.
     bool RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig);
 
-    // Turn this public key into an uncompressed public key.
+	// Turn this public key into an uncompressed public key.
     bool Decompress();
+
+    /// Derive BIP32 child pubkey.
+    bool Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
 };
 
 
@@ -199,6 +202,11 @@ public:
     // Destructor (again necessary because of memlocking).
     ~CKey() {
         UnlockObject(vch);
+    }
+
+    friend bool operator==(const CKey &a, const CKey &b) {
+        return a.fCompressed == b.fCompressed && a.size() == b.size() &&
+               memcmp(&a.vch[0], &b.vch[0], a.size()) == 0;
     }
 
     // Initialize using begin and end iterators to byte data.

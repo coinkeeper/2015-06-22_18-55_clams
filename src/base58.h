@@ -363,7 +363,7 @@ public:
     void SetKey(const CKey& vchSecret)
     {
         assert(vchSecret.IsValid());
-        SetData(128 + (fTestNet ? CBitcoinAddress::PUBKEY_ADDRESS_TEST : CBitcoinAddress::PUBKEY_ADDRESS), vchSecret.begin(), vchSecret.size());
+        SetData(Params().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
         if (vchSecret.IsCompressed())
             vchData.push_back(1);
     }
@@ -377,24 +377,6 @@ public:
 
     bool IsValid() const
     {
-        bool fExpectTestNet = false;
-        switch(nVersion)
-        {
-            case PRIVKEY_ADDRESS:
-                break;
-	    case PRIVKEY_ADDRESS_BTC:
-	        break;
-	    case PRIVKEY_ADDRESS_LTC:
-		break;
-	    case PRIVKEY_ADDRESS_DOGE:
-		break;
-            case PRIVKEY_ADDRESS_TEST:
-                fExpectTestNet = true;
-                break;
-
-            default:
-                return false;
-        }
         bool fExpectedFormat = vchData.size() == 32 || (vchData.size() == 33 && vchData[32] == 1);
         bool fCorrectVersion = vchVersion == Params().Base58Prefix(CChainParams::SECRET_KEY);
         return fExpectedFormat && fCorrectVersion;
