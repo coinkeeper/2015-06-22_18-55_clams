@@ -107,7 +107,10 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
         return NULL;
 
     CBlockIndex* pindexPrev = pindexBest;
-		int nHeight = pindexPrev->nHeight + 1;
+    int nHeight = pindexPrev->nHeight + 1;
+
+    if (!IsProtocolV2(nHeight))
+	 pblock->nVersion = 6;
 
     // Create coinbase tx
     CTransaction txNew;
