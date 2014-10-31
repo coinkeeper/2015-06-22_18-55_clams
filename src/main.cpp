@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
  
+#include "main.h"
 #include "alert.h"
 #include "checkpoints.h"
 #include "db.h"
@@ -306,7 +307,12 @@ bool IsStandardTx(const CTransaction& tx)
     if (sz >= MAX_STANDARD_TX_SIZE)
         return false;
 
-    BOOST_FOREACH(const CTxIn& txin, tx.vin)
+    // Disallow large transaction comments
+    if (strTxComment.length() > MAX_TX_COMMENT_LEN) {
+        return false;
+    }
+ 
+    BOOST_FOREACH(const CTxIn& txin, vin)
     {
         // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
         // keys. (remember the 520 byte limit on redeemScript size) That works
