@@ -5,8 +5,8 @@
 
 #include "rpcserver.h"
 #include "main.h"
-#include "bitcoinrpc.h"
 #include "kernel.h"
+#include "checkpoints.h"
 
 using namespace json_spirit;
 using namespace std;
@@ -250,8 +250,9 @@ Value getblockbynumber(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
-            "getblock <hash> \n"
-            "Returns details of a block with given block-hash.");
+		     "getblockbynumber <number> [txinfo]\n"
+		     "txinfo optional to print more detailed tx info\n"
+		     "Returns details of a block with given block-number.");
 
     int nHeight = params[0].get_int();
     if (nHeight < 0 || nHeight > nBestHeight)

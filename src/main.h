@@ -56,6 +56,9 @@ inline bool MoneyRange(int64_t nValue) { return (nValue >= 0 && nValue <= MAX_MO
 /** Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp. */
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC
 
+/** Number bytes a transaction comment is allowed to have */
+static const unsigned int MAX_TX_COMMENT_LEN = 140; // 128 bytes + little extra
+
 static const uint256 hashGenesisBlock("0x00000c3ce6b3d823a35224a39798eca9ad889966aeb5a9da7b960ffb9869db35");
 static const uint256 hashGenesisBlockTestNet("0x0000135b14723652fecaeb07a52cebf3f69512594eae48d139956bca67552441");
 
@@ -262,7 +265,8 @@ public:
 
     void SetNull()
     {
-        nVersion = CTransaction::CURRENT_VERSION;
+        //nVersion = CTransaction::CURRENT_VERSION;
+	nVersion = IsProtocolV2(nBestHeight) ? CTransaction::CURRENT_VERSION : LEGACY_VERSION_1;
         nTime = GetAdjustedTime();
         vin.clear();
         vout.clear();

@@ -308,11 +308,11 @@ bool IsStandardTx(const CTransaction& tx)
         return false;
 
     // Disallow large transaction comments
-    if (strTxComment.length() > MAX_TX_COMMENT_LEN) {
+    if (tx.strTxComment.length() > MAX_TX_COMMENT_LEN) {
         return false;
     }
  
-    BOOST_FOREACH(const CTxIn& txin, vin)
+    BOOST_FOREACH(const CTxIn& txin, tx.vin)
     {
         // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
         // keys. (remember the 520 byte limit on redeemScript size) That works
@@ -1205,7 +1205,7 @@ static unsigned int GetNextTargetRequiredV2(const CBlockIndex* pindexLast, bool 
 
 static unsigned int GetNextTargetRequiredV3(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
-    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit;
+    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : Params().ProofOfWorkLimit();
  
     const CBlockIndex* pindex;
     const CBlockIndex* pindexPrevPrev = NULL;
@@ -1236,13 +1236,15 @@ static unsigned int GetNextTargetRequiredV3(const CBlockIndex* pindexLast, bool 
  
     int64_t nActualSpacing = (pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime()) / count;
 
+    /*
     if (0)
-        printf("nActualSpacing = ((block %d) %"PRId64" - (block %d) %"PRId64") / %"PRId64" = %"PRId64" / %"PRId64" = %"PRId64"\n",
+        LogPrintf("nctualSpacing = ((block %d) %"PRId64" - (block %d) %"PRId64") / %"PRId64" = %"PRId64" / %"PRId64" = %"PRId64"\n",
                pindexPrev    ->nHeight, pindexPrev    ->GetBlockTime(),
                pindexPrevPrev->nHeight, pindexPrevPrev->GetBlockTime(),
                count,
                (pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime()), count,
                nActualSpacing);
+    */
 
     if (nActualSpacing < 0) nActualSpacing = nTargetStakeSpacing;
 
@@ -2255,7 +2257,7 @@ bool CBlock::AcceptBlock()
 
     // Check coinstake timestamp
     if (IsProofOfStake() && !CheckCoinStakeTimestamp(nHeight, GetBlockTime(), (int64_t)vtx[1].nTime))
-        return DoS(50, error("AcceptBlock() : coinstake timestamp violation nTimeBlock=%"PRId64" nTimeTx=%u", GetBlockTime(), vtx[1].nTime));
+        return DoS(50, error("AcceptBlock() : coinstake timestamp violation nTimeBlock=%d nTimeTx=%u", GetBlockTime(), vtx[1].nTime));
 
     // Check proof-of-work or proof-of-stake
     if (nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake()))
