@@ -2083,6 +2083,8 @@ bool CBlock::GetCoinAge(uint64_t& nCoinAge) const
 
 bool CBlock::AddToBlockIndex(uint nFile, uint nBlockPos, const uint256& hashProof)
 {
+    AssertLockHeld(cs_main);
+
     // Check for duplicate
     uint256 hash = GetHash();
     if (mapBlockIndex.count(hash))
@@ -2130,8 +2132,6 @@ bool CBlock::AddToBlockIndex(uint nFile, uint nBlockPos, const uint256& hashProo
     txdb.WriteBlockIndex(CDiskBlockIndex(pindexNew));
     if (!txdb.TxnCommit())
         return false;
-
-    LOCK(cs_main);
 
     // New best
     if (pindexNew->nChainTrust > nBestChainTrust)
