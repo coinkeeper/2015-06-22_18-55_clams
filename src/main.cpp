@@ -1622,7 +1622,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
         return DoS(10, error("AcceptBlock() : prev block not found")); 
     CBlockIndex* pindexPrev = (*mi).second; 
     // Check it again in case a previous version let a bad block in, but skip BlockSig checking
-    if (!CheckBlock(!fJustCheck, !fJustCheck, false))
+    if (!CheckBlock(!fJustCheck, !fJustCheck, false, pindex->nHeight))
         return false;
 
     unsigned int flags = SCRIPT_VERIFY_NOCACHE;
@@ -2141,7 +2141,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos, const u
 
 
 
-bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) const
+bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig, int nHeight) const
 {
     // These are checks that are independent of context
     // that can be verified before saving an orphan block.
@@ -2166,7 +2166,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) c
             return DoS(100, error("CheckBlock() : more than one coinbase"));
 
     // Check coinbase timestamp
-    if (GetBlockTime() > FutureDriftV2((int64_t)vtx[0].nTime))
+    if (GetBlockTime() > FutureDrift((int64_t)vtx[0].nTime, nHeight))
         return DoS(50, error("CheckBlock() : coinbase timestamp is too early"));
 
     if (IsProofOfStake())
