@@ -1284,8 +1284,11 @@ bool CheckSig(vector<unsigned char> vchSig, const vector<unsigned char> &vchPubK
     if (signatureCache.Get(sighash, vchSig, pubkey))
         return true;
 
-    if (!CPubKey(vchPubKey).Verify(sighash, vchSig))
+   if (!pubkey.Verify(sighash, vchSig))
         return false;
+
+    if (!(flags & SCRIPT_VERIFY_NOCACHE))
+        signatureCache.Set(sighash, vchSig, pubkey);
 
     return true;
 }

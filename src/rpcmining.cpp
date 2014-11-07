@@ -11,8 +11,12 @@
 #include "init.h"
 #include "miner.h"
 
+#include <boost/assign/list_of.hpp>
+
 using namespace json_spirit;
 using namespace std;
+
+using namespace boost::assign;
 
 // Key used by getwork/getblocktemplate miners.
 // Allocated in InitRPCMining, free'd in ShutdownRPCMining
@@ -58,7 +62,8 @@ Value getmininginfo(const Array& params, bool fHelp)
             "Returns an object containing mining-related information.");
 
     uint64_t nWeight = 0;
-    pwalletMain->GetStakeWeight(nWeight);
+    if (pwalletMain)
+        pwalletMain->GetStakeWeight(nWeight);
 
     Object obj, diff, weight;
     obj.push_back(Pair("blocks",        (int)nBestHeight));
@@ -94,7 +99,8 @@ Value getstakinginfo(const Array& params, bool fHelp)
             "Returns an object containing staking-related information.");
 
     uint64_t nWeight = 0;
-    pwalletMain->GetStakeWeight(nWeight);
+    if (pwalletMain)
+    	pwalletMain->GetStakeWeight(nWeight);
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
     bool staking = nLastCoinStakeSearchInterval && nWeight;

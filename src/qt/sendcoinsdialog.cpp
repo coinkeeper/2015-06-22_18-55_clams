@@ -238,7 +238,7 @@ void SendCoinsDialog::clear()
 {
     ui->editTxComment->clear();
     // Remove 
-    entries until only one left
+    //entries until only one left
     while(ui->entries->count())
     {
         delete ui->entries->takeAt(0)->widget();

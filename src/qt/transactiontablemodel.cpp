@@ -619,7 +619,7 @@ QVariant TransactionTableModel::headerData(int section, Qt::Orientation orientat
             case Amount:
                 return tr("Amount removed from or added to balance.");
             case TxComment:
-+                return tr("Transaction comment.");
+                return tr("Transaction comment.");
             }
         }
     }

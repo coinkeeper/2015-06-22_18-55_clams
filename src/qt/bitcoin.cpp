@@ -1,6 +1,5 @@
-/*
- * W.J. van der Laan 2011-2012
- */
+//d
+//
 
 #include <QApplication>
 
