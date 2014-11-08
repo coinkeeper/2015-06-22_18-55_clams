@@ -94,7 +94,7 @@ void Shutdown()
     if (!lockShutdown) return;
 
     RenameThread("clam-shutoff");
-    nTransactionsUpdated++;
+    mempool.AddTransactionsUpdated(1);
     StopRPCThreads();
 #ifdef ENABLE_WALLET
     ShutdownRPCMining();

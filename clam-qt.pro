@@ -174,6 +174,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/key.h \
     src/db.h \
     src/txdb.h \
+    src/txmempool.h \
     src/walletdb.h \
     src/script.h \
     src/init.h \
@@ -242,6 +243,7 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/chainparams.cpp \
     src/version.cpp \
     src/sync.cpp \
+    src/txmempool.cpp \
     src/util.cpp \
     src/hash.cpp \
     src/netbase.cpp \

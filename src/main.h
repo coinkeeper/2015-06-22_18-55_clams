@@ -8,24 +8,20 @@
 #include "core.h"
 #include "bignum.h"
 #include "sync.h"
+#include "txmempool.h"
 #include "net.h"
 #include "script.h"
 #include "scrypt.h"
 
 #include <list>
 
-class CWallet;
 class CBlock;
 class CBlockIndex;
-class CKeyItem;
-class CReserveKey;
-class COutPoint;
-
-class CAddress;
 class CInv;
+class CKeyItem;
 class CNode;
-
-class CTxMemPool;
+class CReserveKey;
+class CWallet;
 
 static const int LAST_POW_BLOCK = 10000;
 
@@ -73,6 +69,7 @@ inline int64_t FutureDrift(int64_t nTime, int nHeight) { return IsProtocolV2(nHe
 
 extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
+extern CTxMemPool mempool;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
 extern std::set<std::pair<COutPoint, uint> > setStakeSeen;
 extern CBlockIndex* pindexGenesisBlock;
@@ -1318,42 +1315,6 @@ public:
 
 
 
-class CTxMemPool
-{
-public:
-    mutable CCriticalSection cs;
-    std::map<uint256, CTransaction> mapTx;
-    std::map<COutPoint, CInPoint> mapNextTx;
-
-    bool addUnchecked(const uint256& hash, CTransaction &tx);
-    bool remove(const CTransaction &tx, bool fRecursive = false);
-    bool removeConflicts(const CTransaction &tx);
-    void clear();
-    void queryHashes(std::vector<uint256>& vtxid);
-
-    unsigned long size() const
-    {
-        LOCK(cs);
-        return mapTx.size();
-    }
-
-    bool exists(uint256 hash) const
-    {
-        LOCK(cs);
-        return (mapTx.count(hash) != 0);
-    }
-
-    bool lookup(uint256 hash, CTransaction& result) const
-    {
-        LOCK(cs);
-        std::map<uint256, CTransaction>::const_iterator i = mapTx.find(hash);
-        if (i == mapTx.end()) return false;
-        result = i->second;
-        return true;
-    }
-};
-
-extern CTxMemPool mempool;
 
 
 class CWalletInterface {
