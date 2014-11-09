@@ -8,17 +8,19 @@
 #include "rpcclient.h"
 
 #include <QTime>
+#include <QTimer>
 #include <QThread>
+#include <QTextEdit>
 #include <QKeyEvent>
 #include <QUrl>
 #include <QScrollBar>
 
 #include <openssl/crypto.h>
 
-// TODO: add a scrollback limit, as there is currently none
 // TODO: make it possible to filter out categories (esp debug messages when implemented)
 // TODO: receive errors and debug messages through ClientModel
 
+const int CONSOLE_SCROLLBACK = 50;
 const int CONSOLE_HISTORY = 50;
 const QSize ICON_SIZE(24, 24);
 
@@ -323,9 +325,9 @@ void RPCConsole::clear()
                 "table { }"
                 "td.time { color: #808080; padding-top: 3px; } "
                 "td.message { font-family: Monospace; font-size: 12px; } "
-                "td.cmd-request { color: #006060; } "
+                "td.cmd-request { color: #00C0C0; } "
                 "td.cmd-error { color: red; } "
-                "b { color: #006060; } "
+                "b { color: #00C0C0; } "
                 );
 
     message(CMD_REPLY, (tr("Welcome to the Clam RPC console.") + "<br>" +

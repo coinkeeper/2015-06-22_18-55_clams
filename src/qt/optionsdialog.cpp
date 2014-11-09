@@ -147,6 +147,7 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
     mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
     mapper->addMapping(ui->minimizeCoinAge, OptionsModel::MinimizeCoinAge);
+    mapper->addMapping(ui->useClamTheme, OptionsModel::UseClamTheme);
 }
 
 void OptionsDialog::enableApplyButton()

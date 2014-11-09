@@ -24,8 +24,7 @@ static int column_alignments[] = {
         Qt::AlignLeft|Qt::AlignVCenter,
         Qt::AlignLeft|Qt::AlignVCenter,
         Qt::AlignLeft|Qt::AlignVCenter,
-        Qt::AlignLeft|Qt::AlignVCenter,
-        Qt::AlignLeft|Qt::AlignVCenter
+        Qt::AlignRight|Qt::AlignVCenter
     };
 
 // Comparison operator for sort/binary search of model tx list
@@ -216,7 +215,7 @@ public:
             std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
             if(mi != wallet->mapWallet.end())
             {
-                return TransactionDesc::toHTML(wallet, mi->second, unit);
+                return TransactionDesc::toHTML(wallet, mi->second, rec, unit);
             }
         }
         return QString("");
@@ -229,7 +228,7 @@ TransactionTableModel::TransactionTableModel(CWallet* wallet, WalletModel *paren
         walletModel(parent),
         priv(new TransactionTablePriv(wallet, this))
 {
-    columns << QString() << tr("Date") << tr("Type") << tr("Address") << tr("Amount") << tr("TxComment");
+    columns << QString() << tr("Date") << tr("Type") << tr("Address") << tr("TxComment") << tr("Amount");
 
     priv->refreshWallet();
 
@@ -564,6 +563,10 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         {
             return COLOR_NEGATIVE;
         }
+        if(index.column() == Amount && rec->type != TransactionRecord::Generated && (rec->credit+rec->debit) > 0)
+        {
+            return fUseClamTheme ? QColor(0, 255, 0) : QColor(0, 128, 0);
+        }
         if(index.column() == ToAddress)
         {
             return addressColor(rec);
@@ -582,7 +585,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case AmountRole:
         return rec->credit + rec->debit;
     case TxIDRole:
-        return QString::fromStdString(rec->getTxID());
+        return rec->getTxID();
     case ConfirmedRole:
         return rec->status.countsForBalance;
     case FormattedAmountRole:

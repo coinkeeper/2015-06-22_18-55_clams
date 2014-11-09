@@ -67,6 +67,16 @@ qint64 WalletModel::getImmatureBalance() const
     return wallet->GetImmatureBalance();
 }
 
+int WalletModel::getNumTransactions() const
+{
+    int numTransactions = 0;
+    {
+        LOCK(wallet->cs_wallet);
+        numTransactions = wallet->mapWallet.size();
+    }
+    return numTransactions;
+}
+
 void WalletModel::updateStatus()
 {
     EncryptionStatus newEncryptionStatus = getEncryptionStatus();
@@ -122,6 +132,13 @@ void WalletModel::updateTransaction(const QString &hash, int status)
 
     // Balance and number of transactions might have changed
     checkBalanceChanged();
+
+    int newNumTransactions = getNumTransactions();
+    if(cachedNumTransactions != newNumTransactions)
+    {
+        cachedNumTransactions = newNumTransactions;
+        emit numTransactionsChanged(newNumTransactions);
+    }
 }
 
 void WalletModel::updateAddressBook(const QString &address, const QString &label, bool isMine, int status)
@@ -195,15 +212,14 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(const QString &txcomment, co
         CWalletTx wtx;
         CReserveKey keyChange(wallet);
         int64_t nFeeRequired = 0;
-        
-        std::string strTxComment = txcomment.toStdString();
+	
+
+       	std::string strTxComment = txcomment.toStdString();
         if (!strTxComment.empty())
             strTxComment = "text:" + strTxComment;
 
         bool fCreated = wallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, strTxComment, coinControl);
- 
-
-        if(!fCreated)
+ 	if(!fCreated)
         {
             if((total + nFeeRequired) > nBalance) // FIXME: could cause collisions in the future
             {

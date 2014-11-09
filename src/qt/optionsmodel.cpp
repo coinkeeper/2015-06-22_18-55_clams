@@ -8,7 +8,7 @@
 
 #include <QSettings>
 
-bool fUseBlackTheme;
+bool fUseClamTheme;
 
 OptionsModel::OptionsModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -31,10 +31,8 @@ bool static ApplyProxySettings()
     if (!IsLimited(NET_IPV4))
         SetProxy(NET_IPV4, addrProxy, nSocksVersion);
     if (nSocksVersion > 4) {
-#ifdef USE_IPV6
         if (!IsLimited(NET_IPV6))
             SetProxy(NET_IPV6, addrProxy, nSocksVersion);
-#endif
         SetNameProxy(addrProxy, nSocksVersion);
     }
     return true;
@@ -52,6 +50,7 @@ void OptionsModel::Init()
     nTransactionFee = settings.value("nTransactionFee").toLongLong();
     nReserveBalance = settings.value("nReserveBalance").toLongLong();
     language = settings.value("language", "").toString();
+    fUseClamTheme = settings.value("fUseClamTheme", true).toBool();
 
     // These are shared with core Bitcoin; we want
     // command-line options to override the GUI settings:
@@ -117,6 +116,8 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return QVariant(fCoinControlFeatures);
         case MinimizeCoinAge:
             return settings.value("fMinimizeCoinAge", GetBoolArg("-minimizecoinage", false));
+        case UseClamTheme:
+            return QVariant(fUseClamTheme);
         default:
             return QVariant();
         }
@@ -210,6 +211,10 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
            fMinimizeCoinAge = value.toBool();
            settings.setValue("fMinimizeCoinAge", fMinimizeCoinAge);
            break;
+        case UseClamTheme:
+            fUseClamTheme = value.toBool();
+            settings.setValue("fUseClamTheme", fUseClamTheme);
+            break;
         default:
             break;
         }

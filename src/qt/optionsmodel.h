@@ -3,6 +3,8 @@
 
 #include <QAbstractListModel>
 
+extern bool fUseClamTheme;
+
 /** Interface from Qt to configuration data structure for Bitcoin client.
    To Qt, the options are presented as a list with the different options
    laid out vertically.
@@ -31,6 +33,7 @@ public:
         Language,          // QString
         CoinControlFeatures, // bool
         MinimizeCoinAge,   // bool
+        UseClamTheme,     // bool
         OptionIDRowCount,
     };
 

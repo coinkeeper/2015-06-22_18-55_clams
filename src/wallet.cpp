@@ -1808,9 +1808,9 @@ bool CWallet::GetStakeWeight(uint64_t& nWeight)
 
         if (nCurrentTime - pcoin.first->nTime > nStakeMinAge)
             nWeight += pcoin.first->vout[pcoin.second].nValue;
-    }
+    } 
 
-    return true;
+   return true;
 }
 
 bool CWallet::GetExpectedStakeTime(uint64_t& nExpected)
