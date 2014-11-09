@@ -1221,18 +1221,19 @@ static unsigned int GetNextTargetRequiredV3(const CBlockIndex* pindexLast, bool 
  
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake);
 
-    int64_t nInterval = nTargetTimespan / nTargetStakeSpacing;
+    int64_t nInterval = (nTargetTimespan / nTargetStakeSpacing) * 4;
     int64_t count = 0;
 
-    for (pindex = pindexPrev; pindex && pindex->nHeight && count < nInterval; pindex = GetLastBlockIndex(pindex, fProofOfStake)) {
-		pindexPrevPrev = pindex;
+    for (pindex = pindexPrev; pindex && pindex->nHeight && count < nInterval; pindex = GetLastBlockIndex(pindex, fProofOfStake)
+    {
+	pindexPrevPrev = pindex;
         pindex = pindex->pprev;
         if (!pindex) break;
         count++;
         pindex = GetLastBlockIndex(pindex, fProofOfStake);
     }
 
-	if (!pindex || !pindex->nHeight)
+    if (!pindex || !pindex->nHeight)
 		count--;
 
     count--;
