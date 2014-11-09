@@ -1224,7 +1224,7 @@ static unsigned int GetNextTargetRequiredV3(const CBlockIndex* pindexLast, bool 
     int64_t nInterval = (nTargetTimespan / nTargetStakeSpacing) * 4;
     int64_t count = 0;
 
-    for (pindex = pindexPrev; pindex && pindex->nHeight && count < nInterval; pindex = GetLastBlockIndex(pindex, fProofOfStake)
+    for (pindex = pindexPrev; pindex && pindex->nHeight && count < nInterval; pindex = GetLastBlockIndex(pindex, fProofOfStake))
     {
 	pindexPrevPrev = pindex;
         pindex = pindex->pprev;
@@ -3241,6 +3241,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     else if (strCommand == "verack")
     {
         pfrom->SetRecvVersion(min(pfrom->nVersion, PROTOCOL_VERSION));
+
+         // TODO: add same peer detect in case of malicious version advertisement
+         if ( pfrom->nVersion > PROTOCOL_VERSION )
+             fClientsWithNewerVersion++;
     }
 
 

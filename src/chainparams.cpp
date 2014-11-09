@@ -11,6 +11,8 @@
 
 #include <boost/assign/list_of.hpp>
 
+#define PUSH_SEED( addr ) vSeeds.push_back(CDNSSeedData(addr, addr));
+
 using namespace boost::assign;
 
 struct SeedSpec6 {
@@ -79,10 +81,23 @@ public:
         assert(hashGenesisBlock == uint256("0x00000c3ce6b3d823a35224a39798eca9ad889966aeb5a9da7b960ffb9869db35"));
         assert(genesis.hashMerkleRoot == uint256("0xef10b32afd53e4a6ebb8bdb0486c6acbe9b43afe3dfa538e913b89bb1319ff96"));
 
-        vSeeds.push_back(CDNSSeedData("142.4.201.123", "142.4.201.123"));
-        vSeeds.push_back(CDNSSeedData("195.95.21.241", "195.95.21.241"));
-        vSeeds.push_back(CDNSSeedData("74.207.230.61", "74.207.230.61"));
-        vSeeds.push_back(CDNSSeedData("198.245.60.38", "198.245.60.38"));
+        PUSH_SEED("23.92.210.2")
+        PUSH_SEED("24.67.30.88")
+        PUSH_SEED("71.188.55.212")
+        PUSH_SEED("71.241.130.246")
+        PUSH_SEED("72.10.217.82")
+        PUSH_SEED("73.55.207.245")
+        PUSH_SEED("73.172.149.95")
+        PUSH_SEED("74.207.230.61")
+        PUSH_SEED("80.195.253.183")
+        PUSH_SEED("84.194.247.232")
+        PUSH_SEED("93.103.131.59")
+        PUSH_SEED("96.246.211.120")
+        PUSH_SEED("104.131.59.43")
+        PUSH_SEED("142.4.201.123")
+        PUSH_SEED("173.31.55.8")
+        PUSH_SEED("195.95.21.241")
+        PUSH_SEED("198.245.60.38")
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(137);
         base58Prefixes[SCRIPT_ADDRESS] = list_of(5);

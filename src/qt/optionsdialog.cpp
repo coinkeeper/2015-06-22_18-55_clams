@@ -175,13 +175,6 @@ void OptionsDialog::disableSaveButtons()
 void OptionsDialog::setSaveButtonState(bool fState)
 {
     ui->applyButton->setEnabled(fState);
-    ui->okButton->setEnabled(fState);
-}
-
-void OptionsDialog::on_okButton_clicked()
-{
-    mapper->submit();
-    accept();
 }
 
 void OptionsDialog::on_cancelButton_clicked()

@@ -70,6 +70,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     clientModel(0),
     walletModel(0),
     toolbar(0),
+    rpcConsole(0),
+    optionsPage(0),
     encryptWalletAction(0),
     changePassphraseAction(0),
     unlockWalletAction(0),
@@ -77,7 +79,6 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     aboutQtAction(0),
     trayIcon(0),
     notificator(0),
-    rpcConsole(0),
     prevBlocks(0),
     nWeight(0)
 {
@@ -107,19 +108,17 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
 
     // Create tabs
     overviewPage = new OverviewPage();
-
+    rpcConsole = new RPCConsole(this);
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
     transactionView = new TransactionView(this);
     vbox->addWidget(transactionView);
     transactionsPage->setLayout(vbox);
 
+    // embedded model pages
     addressBookPage = new AddressBookPage(AddressBookPage::ForEditing, AddressBookPage::SendingTab);
-
     receiveCoinsPage = new AddressBookPage(AddressBookPage::ForEditing, AddressBookPage::ReceivingTab);
-
     sendCoinsPage = new SendCoinsDialog(this);
-
     signVerifyMessageDialog = new SignVerifyMessageDialog(this);
 
     centralStackedWidget = new QStackedWidget(this);
@@ -128,6 +127,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     centralStackedWidget->addWidget(addressBookPage);
     centralStackedWidget->addWidget(receiveCoinsPage);
     centralStackedWidget->addWidget(sendCoinsPage);
+    centralStackedWidget->addWidget(rpcConsole);
+    // ! do not add options page, it gets put here on the fly
 
     QWidget *centralWidget = new QWidget();
     QVBoxLayout *centralLayout = new QVBoxLayout(centralWidget);
@@ -146,30 +147,32 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     frameBlocks->setContentsMargins(0,0,0,0);
     frameBlocks->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     frameBlocks->setStyleSheet("QWidget { background: none; margin-bottom: 5px; }");
+
     QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
     frameBlocksLayout->setContentsMargins(3,0,3,0);
-    frameBlocksLayout->setSpacing(3);
+    frameBlocksLayout->setSpacing(12);
     frameBlocksLayout->setAlignment(Qt::AlignHCenter);
+
+    labelSquishIcon = new QLabel();
     labelEncryptionIcon = new QLabel();
     labelStakingIcon = new QLabel();
     labelConnectionsIcon = new QLabel();
     labelBlocksIcon = new QLabel();
-    frameBlocksLayout->addStretch();
+    labelUpdateIcon = new QLabel();
+
+    frameBlocksLayout->addWidget(labelSquishIcon);  // Left pad
     frameBlocksLayout->addWidget(labelEncryptionIcon);
-    frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelStakingIcon);
-    frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelConnectionsIcon);
-    frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelBlocksIcon);
-    frameBlocksLayout->addStretch();
+    frameBlocksLayout->addWidget(labelUpdateIcon);  // Right pad
     toolbar->addWidget(frameBlocks);
 
     if (GetBoolArg("-staking", true))
     {
         QTimer *timerStakingIcon = new QTimer(labelStakingIcon);
         connect(timerStakingIcon, SIGNAL(timeout()), this, SLOT(updateStakingIcon()));
-        timerStakingIcon->start(30 * 1000);
+        timerStakingIcon->start(10 * 1000);
         updateStakingIcon();
     }
 
@@ -204,9 +207,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     // Double-clicking on a transaction on the transaction history page shows details
     connect(transactionView, SIGNAL(doubleClicked(QModelIndex)), transactionView, SLOT(showDetails()));
 
-    rpcConsole = new RPCConsole(this);
-    connect(openRPCConsoleAction, SIGNAL(triggered()), rpcConsole, SLOT(show()));
-    // prevents an oben debug window from becoming stuck/unusable on client shutdown
+    // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
     // Clicking on "Verify Message" in the address book sends you to the verify message tab
@@ -260,6 +261,18 @@ void BitcoinGUI::createActions()
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressBookAction);
 
+    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options"), this);
+    optionsAction->setToolTip(tr("Modify configuration options for Clam"));
+    optionsAction->setCheckable(true);
+    optionsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+    tabGroup->addAction(optionsAction);
+
+    rpcConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug Window"), this);
+    rpcConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
+    rpcConsoleAction->setCheckable(true);
+    rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
+    tabGroup->addAction(rpcConsoleAction);
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -270,6 +283,10 @@ void BitcoinGUI::createActions()
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
+    connect(optionsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(optionsAction, SIGNAL(triggered()), this, SLOT(gotoOptionsPage()));
+    connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(gotoConsolePage()));
 
     quitAction = new QAction(tr("E&xit"), this);
     quitAction->setToolTip(tr("Quit application"));
@@ -281,9 +298,6 @@ void BitcoinGUI::createActions()
     aboutQtAction = new QAction(tr("About &Qt"), this);
     aboutQtAction->setToolTip(tr("Show information about Qt"));
     aboutQtAction->setMenuRole(QAction::AboutQtRole);
-    optionsAction = new QAction(tr("&Options..."), this);
-    optionsAction->setToolTip(tr("Modify configuration options for Clam"));
-    optionsAction->setMenuRole(QAction::PreferencesRole);
     toggleHideAction = new QAction(QIcon(":/icons/bitcoin"), tr("&Show / Hide"), this);
     encryptWalletAction = new QAction(tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setToolTip(tr("Encrypt or decrypt wallet"));
@@ -302,14 +316,11 @@ void BitcoinGUI::createActions()
     importAction->setToolTip(tr("Import a wallet by .dat file."));
     exportAction = new QAction(QIcon(":/icons/export"), tr("&Export..."), this);
     exportAction->setToolTip(tr("Export the data in the current tab to a file"));
-    openRPCConsoleAction = new QAction(tr("&Debug window"), this);
-    openRPCConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
 
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
     connect(importAction, SIGNAL(triggered()), this, SLOT(importWallet()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
-    connect(optionsAction, SIGNAL(triggered()), this, SLOT(optionsClicked()));
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(encryptWalletAction, SIGNAL(triggered()), this, SLOT(encryptWallet()));
     connect(backupWalletAction, SIGNAL(triggered()), this, SLOT(backupWallet()));
@@ -339,12 +350,8 @@ void BitcoinGUI::createMenuBar()
     settings->addAction(changePassphraseAction);
     settings->addAction(unlockWalletAction);
     settings->addAction(lockWalletAction);
-    settings->addSeparator();
-    settings->addAction(optionsAction);
 
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
-    help->addAction(openRPCConsoleAction);
-    help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
 }
@@ -378,11 +385,14 @@ void BitcoinGUI::createToolBars()
     toolbar->addAction(sendCoinsAction);
     toolbar->addAction(historyAction);
     toolbar->addAction(addressBookAction);
+    toolbar->addAction(optionsAction);
+    toolbar->addAction(rpcConsoleAction);
 
     toolbar->addWidget(makeToolBarSpacer());
 
     toolbar->setOrientation(Qt::Vertical);
-    toolbar->setMovable(false);
+    toolbar->setFloatable(false); // Disable dockable
+    toolbar->setMovable(false); // Disable drag/drop handle
 
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
@@ -465,6 +475,21 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
     }
 }
 
+void BitcoinGUI::toggleExportButton(bool toggle)
+{
+    if (toggle)
+    {
+        exportAction->setEnabled(true);
+        disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+        connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
+    }
+    else
+    {
+        exportAction->setEnabled(false);
+        disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    }
+}
+
 void BitcoinGUI::createTrayIcon()
 {
     QMenu *trayIconMenu;
@@ -492,9 +517,6 @@ void BitcoinGUI::createTrayIcon()
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(signMessageAction);
     trayIconMenu->addAction(verifyMessageAction);
-    trayIconMenu->addSeparator();
-    trayIconMenu->addAction(optionsAction);
-    trayIconMenu->addAction(openRPCConsoleAction);
 #ifndef Q_OS_MAC // This is built-in on Mac
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction);
@@ -771,48 +793,60 @@ void BitcoinGUI::gotoOverviewPage()
 {
     overviewAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(overviewPage);
-
-    exportAction->setEnabled(false);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    toggleExportButton(false);
 }
 
 void BitcoinGUI::gotoHistoryPage()
 {
     historyAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(transactionsPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), transactionView, SLOT(exportClicked()));
+    toggleExportButton(true);
 }
 
 void BitcoinGUI::gotoAddressBookPage()
 {
     addressBookAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(addressBookPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
+    toggleExportButton(true);
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
 {
     receiveCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(receiveCoinsPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), receiveCoinsPage, SLOT(exportClicked()));
+    toggleExportButton(true);
 }
 
 void BitcoinGUI::gotoSendCoinsPage()
 {
     sendCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(sendCoinsPage);
+    toggleExportButton(false);
+}
 
-    exportAction->setEnabled(false);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+void BitcoinGUI::gotoOptionsPage()
+{
+    if(!clientModel || !clientModel->getOptionsModel())
+        return;
+
+    // optionsPage init!
+    if (!optionsPage)
+    {
+        optionsPage = new OptionsDialog(this);
+        optionsPage->setModel(clientModel->getOptionsModel());
+        centralStackedWidget->addWidget(optionsPage);
+    }
+
+    optionsAction->setChecked(true);
+    centralStackedWidget->setCurrentWidget(optionsPage);
+    toggleExportButton(false);
+}
+
+void BitcoinGUI::gotoConsolePage()
+{
+    rpcConsoleAction->setChecked(true);
+    centralStackedWidget->setCurrentWidget(rpcConsole);
+    toggleExportButton(false);
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)
@@ -1049,8 +1083,19 @@ void BitcoinGUI::updateWeight()
   pwalletMain->GetStakeWeight(nWeight);
 }
 
+void BitcoinGUI::detectNewVersion()
+{
+    // Ghetto protocol_version detect
+    if ( fClientsWithNewerVersion > 2 )
+    {
+        labelUpdateIcon->setPixmap(QIcon(":/icons/update_notify").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelUpdateIcon->setToolTip(tr("A new version is available! Visit http://www.clamclient.com for details."));
+    }
+}
+
 void BitcoinGUI::updateStakingIcon()
 {
+    detectNewVersion();
     updateWeight();
 
     if (nLastCoinStakeSearchInterval && nWeight)

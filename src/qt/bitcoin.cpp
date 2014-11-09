@@ -79,9 +79,20 @@ static bool ThreadSafeAskFee(int64_t nFeeRequired, const std::string& strCaption
 
 static void InitMessage(const std::string &message)
 {
+    const QColor splashTextColor = QColor(35,35,35);
+
     if(splashref)
     {
-        splashref->showMessage(QString::fromStdString(message), Qt::AlignBottom|Qt::AlignHCenter, QColor(232,186,63));
+        // Ensure bold text for static object
+        if (!splashref->font().bold())
+        {
+            QFont newFont = splashref->font();
+            newFont.setBold(true);
+            splashref->setFont(newFont);
+        }
+
+        // Paint text
+        splashref->showMessage(QString::fromStdString(message), Qt::AlignBottom|Qt::AlignHCenter, splashTextColor);
         QApplication::instance()->processEvents();
     }
     LogPrintf("init message: %s\n", message);
