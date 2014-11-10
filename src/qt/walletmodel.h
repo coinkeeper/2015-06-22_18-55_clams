@@ -63,7 +63,7 @@ public:
     AddressTableModel *getAddressTableModel();
     TransactionTableModel *getTransactionTableModel();
 
-    qint64 getBalance() const;
+    qint64 getBalance(const CCoinControl *coinControl=NULL) const;
     qint64 getStake() const;
     qint64 getUnconfirmedBalance() const;
     qint64 getImmatureBalance() const;
@@ -86,7 +86,7 @@ public:
     };
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(const QList<SendCoinsRecipient> &recipients, const CCoinControl *coinControl=NULL);
+    SendCoinsReturn sendCoins(const QString &clamspeech, const QList<SendCoinsRecipient> &recipients, const CCoinControl *coinControl=NULL);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);
@@ -177,8 +177,8 @@ signals:
     // this means that the unlocking failed or was cancelled.
     void requireUnlock();
 
-    // Asynchronous error notification
-    void error(const QString &title, const QString &message, bool modal);
+    // Asynchronous message notification
+    void message(const QString &title, const QString &message, bool modal, unsigned int style);
 };
 
 

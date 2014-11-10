@@ -4,6 +4,7 @@
 #include "uint256.h"
 
 #include <QList>
+#include <QString>
 
 class CWallet;
 class CWalletTx;
@@ -14,8 +15,8 @@ class TransactionStatus
 {
 public:
     TransactionStatus():
-            countsForBalance(false), sortKey(""),
-            matures_in(0), status(Offline), depth(0), open_for(0), cur_num_blocks(-1)
+        countsForBalance(false), sortKey(""),
+        matures_in(0), status(Offline), depth(0), open_for(0), cur_num_blocks(-1)
     { }
 
     enum Status {
@@ -47,7 +48,9 @@ public:
        @{*/
     Status status;
     int64_t depth;
-    int64_t open_for; /**< Timestamp if status==OpenUntilDate, otherwise number of blocks */
+    int64_t open_for; /**< Timestamp if status==OpenUntilDate, otherwise number
+                       of additional blocks that need to be mined before
+                       finalization */
     /**@}*/
 
     /** Current number of blocks (to know whether cached status is still valid) */
@@ -75,21 +78,21 @@ public:
     static const int RecommendedNumConfirmations = 10;
 
     TransactionRecord():
-            hash(), time(0), type(Other), address(""), debit(0), credit(0), idx(0)
+            hash(), time(0), type(Other), address(""), debit(0), credit(0), clamspeech(""), idx(0)
     {
     }
 
     TransactionRecord(uint256 hash, int64_t time):
             hash(hash), time(time), type(Other), address(""), debit(0),
-            credit(0), idx(0)
+            credit(0), clamspeech(""), idx(0)
     {
     }
 
     TransactionRecord(uint256 hash, int64_t time,
                 Type type, const std::string &address,
-                int64_t debit, int64_t credit):
+                int64_t debit, int64_t credit, std::string clamspeech):
             hash(hash), time(time), type(type), address(address), debit(debit), credit(credit),
-            idx(0)
+            clamspeech(clamspeech), idx(0)
     {
     }
 
@@ -106,6 +109,7 @@ public:
     std::string address;
     qint64 debit;
     qint64 credit;
+    std::string clamspeech;
     /**@}*/
 
     /** Subtransaction index, for sort key */
@@ -115,7 +119,10 @@ public:
     TransactionStatus status;
 
     /** Return the unique identifier for this transaction (part) */
-    std::string getTxID();
+    QString getTxID() const;
+
+    /** Format subtransaction id */
+    static QString formatSubTxId(const uint256 &hash, int vout);
 
     /** Update status from core wallet tx.
      */

@@ -3,15 +3,41 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "rpcserver.h"
+#include "chainparams.h"
 #include "main.h"
 #include "db.h"
 #include "txdb.h"
 #include "init.h"
 #include "miner.h"
-#include "bitcoinrpc.h"
+
+#include <boost/assign/list_of.hpp>
 
 using namespace json_spirit;
 using namespace std;
+
+using namespace boost::assign;
+
+// Key used by getwork/getblocktemplate miners.
+// Allocated in InitRPCMining, free'd in ShutdownRPCMining
+static CReserveKey* pMiningKey = NULL;
+
+void InitRPCMining()
+{
+    if (!pwalletMain)
+        return;
+
+    // getwork/getblocktemplate mining rewards paid here:
+    pMiningKey = new CReserveKey(pwalletMain);
+}
+
+void ShutdownRPCMining()
+{
+    if (!pMiningKey)
+        return;
+
+    delete pMiningKey; pMiningKey = NULL;
+}
 
 Value getsubsidy(const Array& params, bool fHelp)
 {
@@ -19,7 +45,6 @@ Value getsubsidy(const Array& params, bool fHelp)
         throw runtime_error(
             "getsubsidy [nTarget]\n"
             "Returns proof-of-work subsidy value for the specified value of target.");
-
 
     if (params.size() != 0)
     {
@@ -36,8 +61,9 @@ Value getmininginfo(const Array& params, bool fHelp)
             "getmininginfo\n"
             "Returns an object containing mining-related information.");
 
-    uint64_t nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
-    pwalletMain->GetStakeWeight(*pwalletMain, nMinWeight, nMaxWeight, nWeight);
+    uint64_t nWeight = 0;
+    if (pwalletMain)
+    	pwalletMain->GetStakeWeight(nWeight);
 
     Object obj, diff, weight;
     obj.push_back(Pair("blocks",        (int)nBestHeight));
@@ -55,13 +81,13 @@ Value getmininginfo(const Array& params, bool fHelp)
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
     obj.push_back(Pair("pooledtx",      (uint64_t)mempool.size()));
 
-    weight.push_back(Pair("minimum",    (uint64_t)nMinWeight));
-    weight.push_back(Pair("maximum",    (uint64_t)nMaxWeight));
+    weight.push_back(Pair("minimum",    (uint64_t)nWeight));
+    weight.push_back(Pair("maximum",    (uint64_t)0));
     weight.push_back(Pair("combined",  (uint64_t)nWeight));
     obj.push_back(Pair("stakeweight", weight));
 
     obj.push_back(Pair("stakeinterest",    (uint64_t)COIN_YEAR_REWARD));
-    obj.push_back(Pair("testnet",       fTestNet));
+    obj.push_back(Pair("testnet",       TestNet()));
     return obj;
 }
 
@@ -72,8 +98,8 @@ Value getstakinginfo(const Array& params, bool fHelp)
             "getstakinginfo\n"
             "Returns an object containing staking-related information.");
 
-    uint64_t nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
-    pwalletMain->GetStakeWeight(*pwalletMain, nMinWeight, nMaxWeight, nWeight);
+    uint64_t nWeight = 0;
+    pwalletMain->GetStakeWeight(nWeight);
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
     bool staking = nLastCoinStakeSearchInterval && nWeight;
@@ -123,7 +149,6 @@ Value getworkex(const Array& params, bool fHelp)
     typedef map<uint256, pair<CBlock*, CScript> > mapNewBlock_t;
     static mapNewBlock_t mapNewBlock;
     static vector<CBlock*> vNewBlock;
-    static CReserveKey reservekey(pwalletMain);
 
     if (params.size() == 0)
     {
@@ -148,7 +173,7 @@ Value getworkex(const Array& params, bool fHelp)
             nStart = GetTime();
 
             // Create new block
-            pblock = CreateNewBlock(pwalletMain);
+            pblock = CreateNewBlock(*pMiningKey);
             if (!pblock)
                 throw JSONRPCError(-7, "Out of memory");
             vNewBlock.push_back(pblock);
@@ -228,7 +253,8 @@ Value getworkex(const Array& params, bool fHelp)
 
         pblock->hashMerkleRoot = pblock->BuildMerkleTree();
 
-        return CheckWork(pblock, *pwalletMain, reservekey);
+        assert(pwalletMain != NULL);
+        return CheckWork(pblock, *pwalletMain, *pMiningKey);
     }
 }
 
@@ -257,7 +283,6 @@ Value getwork(const Array& params, bool fHelp)
     typedef map<uint256, pair<CBlock*, CScript> > mapNewBlock_t;
     static mapNewBlock_t mapNewBlock;    // FIXME: thread safety
     static vector<CBlock*> vNewBlock;
-    static CReserveKey reservekey(pwalletMain);
 
     if (params.size() == 0)
     {
@@ -287,7 +312,7 @@ Value getwork(const Array& params, bool fHelp)
             nStart = GetTime();
 
             // Create new block
-            pblock = CreateNewBlock(pwalletMain);
+            pblock = CreateNewBlock(*pMiningKey);
             if (!pblock)
                 throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
             vNewBlock.push_back(pblock);
@@ -344,7 +369,8 @@ Value getwork(const Array& params, bool fHelp)
         pblock->vtx[0].vin[0].scriptSig = mapNewBlock[pdata->hashMerkleRoot].second;
         pblock->hashMerkleRoot = pblock->BuildMerkleTree();
 
-        return CheckWork(pblock, *pwalletMain, reservekey);
+        assert(pwalletMain != NULL);
+        return CheckWork(pblock, *pwalletMain, *pMiningKey);
     }
 }
 
@@ -398,8 +424,6 @@ Value getblocktemplate(const Array& params, bool fHelp)
     if (pindexBest->nHeight >= LAST_POW_BLOCK)
         throw JSONRPCError(RPC_MISC_ERROR, "No more PoW blocks");
 
-    static CReserveKey reservekey(pwalletMain);
-
     // Update block
     static unsigned int nTransactionsUpdatedLast;
     static CBlockIndex* pindexPrev;
@@ -422,7 +446,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
             delete pblock;
             pblock = NULL;
         }
-        pblock = CreateNewBlock(pwalletMain);
+        pblock = CreateNewBlock(*pMiningKey);
         if (!pblock)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
@@ -469,8 +493,8 @@ Value getblocktemplate(const Array& params, bool fHelp)
             }
             entry.push_back(Pair("depends", deps));
 
-            int64_t nSigOps = tx.GetLegacySigOpCount();
-            nSigOps += tx.GetP2SHSigOpCount(mapInputs);
+            int64_t nSigOps = GetLegacySigOpCount(tx);
+            nSigOps += GetP2SHSigOpCount(tx, mapInputs);
             entry.push_back(Pair("sigops", nSigOps));
         }
 
@@ -503,7 +527,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
     result.push_back(Pair("sigoplimit", (int64_t)MAX_BLOCK_SIGOPS));
     result.push_back(Pair("sizelimit", (int64_t)MAX_BLOCK_SIZE));
     result.push_back(Pair("curtime", (int64_t)pblock->nTime));
-    result.push_back(Pair("bits", HexBits(pblock->nBits)));
+    result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
     result.push_back(Pair("height", (int64_t)(pindexPrev->nHeight+1)));
 
     return result;

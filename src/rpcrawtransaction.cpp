@@ -6,12 +6,15 @@
 #include <boost/assign/list_of.hpp>
 
 #include "base58.h"
-#include "bitcoinrpc.h"
+#include "rpcserver.h"
 #include "txdb.h"
 #include "init.h"
 #include "main.h"
 #include "net.h"
+#include "keystore.h"
+#ifdef ENABLE_WALLET
 #include "wallet.h"
+#endif
 
 using namespace std;
 using namespace boost;
@@ -31,7 +34,7 @@ void ScriptPubKeyToJSON(const CScript& scriptPubKey, Object& out, bool fIncludeH
 
     if (!ExtractDestinations(scriptPubKey, type, addresses, nRequired))
     {
-        out.push_back(Pair("type", GetTxnOutputType(TX_NONSTANDARD)));
+        out.push_back(Pair("type", GetTxnOutputType(type)));
         return;
     }
 
@@ -50,6 +53,10 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
     entry.push_back(Pair("version", tx.nVersion));
     entry.push_back(Pair("time", (int64_t)tx.nTime));
     entry.push_back(Pair("locktime", (int64_t)tx.nLockTime));
+    if (tx.nVersion > CTransaction::LEGACY_VERSION_1)
+    {
+      entry.push_back(Pair("clam-speech", tx.strCLAMSpeech));
+    }
     Array vin;
     BOOST_FOREACH(const CTxIn& txin, tx.vin)
     {
@@ -137,6 +144,7 @@ Value getrawtransaction(const Array& params, bool fHelp)
     return result;
 }
 
+#ifdef ENABLE_WALLET
 Value listunspent(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 3)
@@ -175,6 +183,7 @@ Value listunspent(const Array& params, bool fHelp)
 
     Array results;
     vector<COutput> vecOutputs;
+    assert(pwalletMain != NULL);
     pwalletMain->AvailableCoins(vecOutputs, false);
     BOOST_FOREACH(const COutput& out, vecOutputs)
     {
@@ -204,6 +213,17 @@ Value listunspent(const Array& params, bool fHelp)
                 entry.push_back(Pair("account", pwalletMain->mapAddressBook[address]));
         }
         entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
+        if (pk.IsPayToScriptHash())
+        {
+            CTxDestination address;
+            if (ExtractDestination(pk, address))
+            {
+                const CScriptID& hash = boost::get<const CScriptID&>(address);
+                CScript redeemScript;
+                if (pwalletMain->GetCScript(hash, redeemScript))
+                    entry.push_back(Pair("redeemScript", HexStr(redeemScript.begin(), redeemScript.end())));
+            }
+        }
         entry.push_back(Pair("amount",ValueFromAmount(nValue)));
         entry.push_back(Pair("confirmations",out.nDepth));
         results.push_back(entry);
@@ -211,12 +231,13 @@ Value listunspent(const Array& params, bool fHelp)
 
     return results;
 }
+#endif
 
 Value createrawtransaction(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    if (fHelp || (params.size() < 2 || params.size() > 3))
         throw runtime_error(
-            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,...}\n"
+            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,...} [tx-comment]\n"
             "Create a transaction spending given inputs\n"
             "(array of objects containing transaction id and output number),\n"
             "sending to given address(es).\n"
@@ -230,6 +251,16 @@ Value createrawtransaction(const Array& params, bool fHelp)
     Object sendTo = params[1].get_obj();
 
     CTransaction rawTx;
+
+    if (params.size() == 3)
+    {
+       std::string clamspeech = params[2].get_str();
+        if (clamspeech.length() > MAX_TX_COMMENT_LEN)
+       {
+            clamspeech.resize(MAX_TX_COMMENT_LEN);
+        }
+        rawTx.strCLAMSpeech = clamspeech;
+    }
 
     BOOST_FOREACH(Value& input, inputs)
     {
@@ -329,7 +360,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 4)
         throw runtime_error(
-            "signrawtransaction <hex string> [{\"txid\":txid,\"vout\":n,\"scriptPubKey\":hex},...] [<privatekey1>,...] [sighashtype=\"ALL\"]\n"
+            "signrawtransaction <hex string> [{\"txid\":txid,\"vout\":n,\"scriptPubKey\":hex,\"redeemScript\":hex},...] [<privatekey1>,...] [sighashtype=\"ALL\"]\n"
             "Sign inputs for raw transaction (serialized, hex-encoded).\n"
             "Second optional argument (may be null) is an array of previous transaction outputs that\n"
             "this transaction depends on but may not yet be in the blockchain.\n"
@@ -340,7 +371,10 @@ Value signrawtransaction(const Array& params, bool fHelp)
             "Returns json object with keys:\n"
             "  hex : raw transaction with signature(s) (hex-encoded string)\n"
             "  complete : 1 if transaction has a complete set of signature (0 if not)"
-            + HelpRequiringPassphrase());
+#ifdef ENABLE_WALLET
+            + HelpRequiringPassphrase()
+#endif
+            );
 
     RPCTypeCheck(params, list_of(str_type)(array_type)(array_type)(str_type), true);
 
@@ -390,6 +424,27 @@ Value signrawtransaction(const Array& params, bool fHelp)
         }
     }
 
+    bool fGivenKeys = false;
+    CBasicKeyStore tempKeystore;
+    if (params.size() > 2 && params[2].type() != null_type)
+    {
+        fGivenKeys = true;
+        Array keys = params[2].get_array();
+        BOOST_FOREACH(Value k, keys)
+        {
+            CBitcoinSecret vchSecret;
+            bool fGood = vchSecret.SetString(k.get_str());
+            if (!fGood)
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
+            CKey key = vchSecret.GetKey();
+            tempKeystore.AddKey(key);
+        }
+    }
+#ifdef ENABLE_WALLET
+    else
+        EnsureWalletIsUnlocked();
+#endif
+
     // Add previous txouts given in the RPC call:
     if (params.size() > 1 && params[1].type() != null_type)
     {
@@ -433,32 +488,28 @@ Value signrawtransaction(const Array& params, bool fHelp)
             }
             else
                 mapPrevOut[outpoint] = scriptPubKey;
+
+            // if redeemScript given and not using the local wallet (private keys
+            // given), add redeemScript to the tempKeystore so it can be signed:
+            if (fGivenKeys && scriptPubKey.IsPayToScriptHash())
+            {
+                RPCTypeCheck(prevOut, map_list_of("txid", str_type)("vout", int_type)("scriptPubKey", str_type)("redeemScript",str_type));
+                Value v = find_value(prevOut, "redeemScript");
+                if (!(v == Value::null))
+                {
+                    vector<unsigned char> rsData(ParseHexV(v, "redeemScript"));
+                    CScript redeemScript(rsData.begin(), rsData.end());
+                    tempKeystore.AddCScript(redeemScript);
+                }
+            }
         }
     }
 
-    bool fGivenKeys = false;
-    CBasicKeyStore tempKeystore;
-    if (params.size() > 2 && params[2].type() != null_type)
-    {
-        fGivenKeys = true;
-        Array keys = params[2].get_array();
-        BOOST_FOREACH(Value k, keys)
-        {
-            CBitcoinSecret vchSecret;
-            bool fGood = vchSecret.SetString(k.get_str());
-            if (!fGood)
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,"Invalid private key");
-            CKey key;
-            bool fCompressed;
-            CSecret secret = vchSecret.GetSecret(fCompressed);
-            key.SetSecret(secret, fCompressed);
-            tempKeystore.AddKey(key);
-        }
-    }
-    else
-        EnsureWalletIsUnlocked();
-
-    const CKeyStore& keystore = (fGivenKeys ? tempKeystore : *pwalletMain);
+#ifdef ENABLE_WALLET
+    const CKeyStore& keystore = ((fGivenKeys || !pwalletMain) ? tempKeystore : *pwalletMain);
+#else
+    const CKeyStore& keystore = tempKeystore;
+#endif
 
     int nHashType = SIGHASH_ALL;
     if (params.size() > 3 && params[3].type() != null_type)
@@ -502,7 +553,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
         {
             txin.scriptSig = CombineSignatures(prevPubKey, mergedTx, i, txin.scriptSig, txv.vin[i].scriptSig);
         }
-        if (!VerifyScript(txin.scriptSig, prevPubKey, mergedTx, i, 0))
+        if (!VerifyScript(txin.scriptSig, prevPubKey, mergedTx, i, STANDARD_SCRIPT_VERIFY_FLAGS, 0, 0, 0))
             fComplete = false;
     }
 
@@ -552,11 +603,8 @@ Value sendrawtransaction(const Array& params, bool fHelp)
     else
     {
         // push to local node
-        CTxDB txdb("r");
-        if (!tx.AcceptToMemoryPool(txdb))
+        if (!AcceptToMemoryPool(mempool, tx, true, NULL))
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX rejected");
-
-        SyncWithWallets(tx, NULL, true);
     }
     RelayTransaction(tx, hashTx);
 

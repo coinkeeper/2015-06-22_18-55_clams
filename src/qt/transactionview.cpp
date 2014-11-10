@@ -20,14 +20,12 @@
 #include <QLineEdit>
 #include <QTableView>
 #include <QHeaderView>
-#include <QPushButton>
 #include <QMessageBox>
 #include <QPoint>
 #include <QMenu>
-#include <QApplication>
-#include <QClipboard>
 #include <QLabel>
 #include <QDateTimeEdit>
+#include <QStyledItemDelegate>
 
 TransactionView::TransactionView(QWidget *parent) :
     QWidget(parent), model(0), transactionProxyModel(0),
@@ -47,6 +45,7 @@ TransactionView::TransactionView(QWidget *parent) :
 #endif
 
     dateWidget = new QComboBox(this);
+    dateWidget->setItemDelegate(new QStyledItemDelegate());
 #ifdef Q_OS_MAC
     dateWidget->setFixedWidth(121);
 #else
@@ -62,6 +61,7 @@ TransactionView::TransactionView(QWidget *parent) :
     hlayout->addWidget(dateWidget);
 
     typeWidget = new QComboBox(this);
+    typeWidget->setItemDelegate(new QStyledItemDelegate());
 #ifdef Q_OS_MAC
     typeWidget->setFixedWidth(121);
 #else
@@ -169,7 +169,6 @@ void TransactionView::setModel(WalletModel *model)
         transactionProxyModel->setSortRole(Qt::EditRole);
 
         transactionView->setModel(transactionProxyModel);
-        transactionView->setAlternatingRowColors(true);
         transactionView->setSelectionBehavior(QAbstractItemView::SelectRows);
         transactionView->setSelectionMode(QAbstractItemView::ExtendedSelection);
         transactionView->setSortingEnabled(true);
@@ -184,6 +183,8 @@ void TransactionView::setModel(WalletModel *model)
                 TransactionTableModel::Type, 120);
         transactionView->horizontalHeader()->setResizeMode(
                 TransactionTableModel::ToAddress, QHeaderView::Stretch);
+        transactionView->horizontalHeader()->setResizeMode(
+                TransactionTableModel::CLAMSpeech, QHeaderView::Stretch);
         transactionView->horizontalHeader()->resizeSection(
                 TransactionTableModel::Amount, 100);
     }

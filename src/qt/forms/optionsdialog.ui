@@ -133,16 +133,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="detachDatabases">
-         <property name="toolTip">
-          <string>Detach block and address databases at shutdown. This means they can be moved to another data directory, but it slows down shutdown. The wallet is always detached.</string>
-         </property>
-         <property name="text">
-          <string>&amp;Detach databases at shutdown</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <spacer name="verticalSpacer_Main">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -380,22 +370,29 @@
         </layout>
        </item>
        <item>
-        <widget class="QCheckBox" name="displayAddresses">
-         <property name="toolTip">
-          <string>Whether to show Clam addresses in the transaction list or not.</string>
-         </property>
-         <property name="text">
-          <string>&amp;Display addresses in transaction list</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QCheckBox" name="coinControlFeatures">
          <property name="toolTip">
           <string>Whether to show coin control features or not.</string>
          </property>
          <property name="text">
           <string>Display coin &amp;control features (experts only!)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="minimizeCoinAge">
+         <property name="toolTip">
+          <string>Whether to select the coin outputs randomly or with minimal coin age.</string>
+         </property>
+         <property name="text">
+          <string>Minimize weight consumption (experimental)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="useClamTheme">
+         <property name="text">
+          <string>Use black visual theme (requires restart)</string>
          </property>
         </widget>
        </item>
@@ -451,29 +448,9 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>48</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="okButton">
-       <property name="text">
-        <string>&amp;OK</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="cancelButton">
        <property name="text">
-        <string>&amp;Cancel</string>
+        <string>&amp;Revert Possible</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
