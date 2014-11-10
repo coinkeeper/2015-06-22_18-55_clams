@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 1.4.2
+!define VERSION 1.4.3
 !define COMPANY "The Clam project"
 !define URL http://www.clams.info/
 
@@ -51,7 +51,7 @@ CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 1.4.2.2
+VIProductVersion 1.4.3.0
 VIAddVersionKey ProductName Clam
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"
