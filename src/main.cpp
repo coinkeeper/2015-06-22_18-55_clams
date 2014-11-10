@@ -308,7 +308,7 @@ bool IsStandardTx(const CTransaction& tx)
         return false;
 
     // Disallow large transaction comments
-    if (tx.strTxComment.length() > MAX_TX_COMMENT_LEN) {
+    if (tx.strCLAMSpeech.length() > MAX_TX_COMMENT_LEN) {
         return false;
     }
  

@@ -37,6 +37,7 @@ SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
 #if QT_VERSION >= 0x040700
     /* Do not move this to the XML file, Qt before 4.7 will choke on it */
     ui->lineEditCoinControlChange->setPlaceholderText(tr("Enter a Clam address (e.g. xqgY4r2RoEdqYk3QsAqFckyf9pRHN6i)"));
+    ui->editCLAMSpeech->setPlaceholderText(tr("CLAMSpeech: (Note: this information is public)"));
 #endif
 
     addEntry();
@@ -123,7 +124,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     if(!model)
         return;
 
-    QString txcomment = ui->editTxComment->text();
+    QString clamspeech = ui->editCLAMSpeech->text();
 
     for(int i = 0; i < ui->entries->count(); ++i)
     {
@@ -177,9 +178,9 @@ void SendCoinsDialog::on_sendButton_clicked()
     WalletModel::SendCoinsReturn sendstatus;
 
     if (!model->getOptionsModel() || !model->getOptionsModel()->getCoinControlFeatures())
-        sendstatus = model->sendCoins(txcomment, recipients);
+        sendstatus = model->sendCoins(clamspeech, recipients);
     else
-        sendstatus = model->sendCoins(txcomment, recipients, CoinControlDialog::coinControl);
+        sendstatus = model->sendCoins(clamspeech, recipients, CoinControlDialog::coinControl);
 
     switch(sendstatus.status)
     {
@@ -232,7 +233,7 @@ void SendCoinsDialog::on_sendButton_clicked()
 
 void SendCoinsDialog::clear()
 {
-    ui->editTxComment->clear();
+    ui->editCLAMSpeech->clear();
     // Remove 
     //entries until only one left
     while(ui->entries->count())
@@ -301,8 +302,8 @@ void SendCoinsDialog::removeEntry(SendCoinsEntry* entry)
 
 QWidget *SendCoinsDialog::setupTabChain(QWidget *prev)
 {
-    QWidget::setTabOrder(prev, ui->editTxComment);
-    prev = ui->editTxComment;
+    QWidget::setTabOrder(prev, ui->editCLAMSpeech);
+    prev = ui->editCLAMSpeech;
 
     for(int i = 0; i < ui->entries->count(); ++i)
     {

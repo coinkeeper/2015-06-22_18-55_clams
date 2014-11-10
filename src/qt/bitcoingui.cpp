@@ -768,7 +768,7 @@ void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int 
                         .data().toString();
         QString address = ttm->index(start, TransactionTableModel::ToAddress, parent)
                         .data().toString();
-        QString txcomment = ttm->index(start, TransactionTableModel::TxComment, parent)
+        QString clamspeech = ttm->index(start, TransactionTableModel::CLAMSpeech, parent)
                         .data().toString();
         QIcon icon = qvariant_cast<QIcon>(ttm->index(start,
                             TransactionTableModel::ToAddress, parent)
@@ -785,7 +785,7 @@ void BitcoinGUI::incomingTransaction(const QModelIndex & parent, int start, int 
                               .arg(date)
                               .arg(BitcoinUnits::formatWithUnit(walletModel->getOptionsModel()->getDisplayUnit(), amount, true))
                               .arg(type)
-                              .arg(address + (txcomment.length() > 0 ? ("\n" + txcomment) : "")), icon);
+                              .arg(address + (clamspeech.length() > 0 ? ("\n" + clamspeech) : "")), icon);
     }
 }
 

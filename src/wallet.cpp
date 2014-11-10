@@ -1638,7 +1638,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
     return true;
 }
 
-bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strTxComment, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strCLAMSpeech, const CCoinControl* coinControl)
 {
     int64_t nValue = 0;
     BOOST_FOREACH (const PAIRTYPE(CScript, int64_t)& s, vecSend)
@@ -1652,9 +1652,9 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
 
     wtxNew.BindWallet(this);
     // transaction comment
-   wtxNew.strTxComment = strTxComment;
-   if (wtxNew.strTxComment.length() > MAX_TX_COMMENT_LEN)
-       wtxNew.strTxComment.resize(MAX_TX_COMMENT_LEN);
+   wtxNew.strCLAMSpeech = strCLAMSpeech;
+   if (wtxNew.strCLAMSpeech.length() > MAX_TX_COMMENT_LEN)
+       wtxNew.strCLAMSpeech.resize(MAX_TX_COMMENT_LEN);
 
     {
         LOCK2(cs_main, cs_wallet);
@@ -1768,11 +1768,11 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
     return true;
 }
 
-bool CWallet::CreateTransaction(CScript scriptPubKey, int64_t nValue,  CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strTxComment, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(CScript scriptPubKey, int64_t nValue,  CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strCLAMSpeech, const CCoinControl* coinControl)
 {
     vector< pair<CScript, int64_t> > vecSend;
     vecSend.push_back(make_pair(scriptPubKey, nValue));
-    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, strTxComment, coinControl);
+    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, strCLAMSpeech, coinControl);
 }
 
 bool CWallet::GetStakeWeight(uint64_t& nWeight)

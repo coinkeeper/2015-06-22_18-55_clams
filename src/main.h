@@ -238,7 +238,7 @@ public:
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     unsigned int nLockTime;
-    std::string strTxComment;
+    std::string strCLAMSpeech;
 
     // Denial-of-service detection:
     mutable int nDoS;
@@ -259,7 +259,7 @@ public:
         READWRITE(nLockTime);
         if (this->nVersion > LEGACY_VERSION_1)
         {
-          READWRITE(strTxComment);
+          READWRITE(strCLAMSpeech);
         }
     )
 
@@ -272,7 +272,7 @@ public:
         vout.clear();
         nLockTime = 0;
         nDoS = 0;  // Denial-of-service prevention
-        strTxComment.clear();
+        strCLAMSpeech.clear();
     }
 
     bool IsNull() const
@@ -366,14 +366,14 @@ public:
     {
         std::string str;
         str += IsCoinBase()? "Coinbase" : (IsCoinStake()? "Coinstake" : "CTransaction");
-        str += strprintf("(hash=%s, nTime=%d, ver=%d, vin.size=%"PRIszu", vout.size=%"PRIszu", nLockTime=%d, strTxComment=%s)\n",
+        str += strprintf("(hash=%s, nTime=%d, ver=%d, vin.size=%"PRIszu", vout.size=%"PRIszu", nLockTime=%d, strCLAMSpeech=%s)\n",
             GetHash().ToString().substr(0,10).c_str(),
             nTime,
             nVersion,
             vin.size(),
             vout.size(),
             nLockTime,
-            strTxComment.substr(0,30).c_str());
+            strCLAMSpeech.substr(0,30).c_str());
         for (unsigned int i = 0; i < vin.size(); i++)
             str += "    " + vin[i].ToString() + "\n";
         for (unsigned int i = 0; i < vout.size(); i++)

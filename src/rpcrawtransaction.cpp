@@ -55,7 +55,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
     entry.push_back(Pair("locktime", (int64_t)tx.nLockTime));
     if (tx.nVersion > CTransaction::LEGACY_VERSION_1)
     {
-      entry.push_back(Pair("tx-comment", tx.strTxComment));
+      entry.push_back(Pair("clam-speech", tx.strCLAMSpeech));
     }
     Array vin;
     BOOST_FOREACH(const CTxIn& txin, tx.vin)
@@ -254,12 +254,12 @@ Value createrawtransaction(const Array& params, bool fHelp)
 
     if (params.size() == 3)
     {
-       std::string txcomment = params[2].get_str();
-        if (txcomment.length() > MAX_TX_COMMENT_LEN)
+       std::string clamspeech = params[2].get_str();
+        if (clamspeech.length() > MAX_TX_COMMENT_LEN)
        {
-            txcomment.resize(MAX_TX_COMMENT_LEN);
+            clamspeech.resize(MAX_TX_COMMENT_LEN);
         }
-        rawTx.strTxComment = txcomment;
+        rawTx.strCLAMSpeech = clamspeech;
     }
 
     BOOST_FOREACH(Value& input, inputs)
