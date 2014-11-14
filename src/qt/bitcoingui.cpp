@@ -82,6 +82,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     prevBlocks(0),
     nWeight(0)
 {
+    updateStyle();
+
     resize(850+95, 550);
     setWindowTitle(tr("Clam") + " - " + tr("Wallet"));
 #ifndef Q_OS_MAC
@@ -94,16 +96,10 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     // Accept D&D of URIs
     setAcceptDrops(true);
 
-    // Create actions for the toolbar, menu bar and tray/dock icon
+    // Create actions and ui objects
     createActions();
-
-    // Create application menu bar
     createMenuBar();
-
-    // Create the toolbars
     createToolBars();
-
-    // Create the tray icon (or setup the dock icon)
     createTrayIcon();
 
     // Create tabs
@@ -183,17 +179,17 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     progressBar->setAlignment(Qt::AlignCenter);
     progressBar->setVisible(false);
 
-    if (!fUseClamTheme)
-    {
-        // Override style sheet for progress bar for styles that have a segmented progress bar,
-        // as they make the text unreadable (workaround for issue #1071)
-        // See https://qt-project.org/doc/qt-4.8/gallery.html
-        QString curStyle = qApp->style()->metaObject()->className();
-        if(curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle")
-        {
-            progressBar->setStyleSheet("QProgressBar { background-color: #e8e8e8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF8000, stop: 1 orange); border-radius: 7px; margin: 0px; }");
-        }
-    }
+//    if (!fUseClamTheme)
+//    {
+//        // Override style sheet for progress bar for styles that have a segmented progress bar,
+//        // as they make the text unreadable (workaround for issue #1071)
+//        // See https://qt-project.org/doc/qt-4.8/gallery.html
+//        QString curStyle = qApp->style()->metaObject()->className();
+//        if(curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle")
+//        {
+//            progressBar->setStyleSheet("QProgressBar { background-color: #e8e8e8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF8000, stop: 1 orange); border-radius: 7px; margin: 0px; }");
+//        }
+//    }
 
     statusBar()->addWidget(progressBarLabel);
     statusBar()->addWidget(progressBar);
@@ -273,6 +269,9 @@ void BitcoinGUI::createActions()
     rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
     tabGroup->addAction(rpcConsoleAction);
 
+    styleButton = new QAction(QIcon(":/icons/debugwindow"), tr("&Press me =D"), this);
+    tabGroup->addAction(styleButton);
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -329,6 +328,9 @@ void BitcoinGUI::createActions()
     connect(lockWalletAction, SIGNAL(triggered()), this, SLOT(lockWallet()));
     connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
     connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
+
+    // TODO testing
+    connect(styleButton, SIGNAL(triggered()), this, SLOT(updateStyleSlot()));
 }
 
 void BitcoinGUI::createMenuBar()
@@ -360,7 +362,7 @@ static QWidget* makeToolBarSpacer()
 {
     QWidget* spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    spacer->setStyleSheet(fUseClamTheme ? "QWidget { background: rgb(30,32,36); }" : "QWidget { background: none; }");
+    spacer->setStyleSheet("QWidget { background: none; }"); // old QWidget { background: rgb(30,32,36); }" :
     return spacer;
 }
 
@@ -370,15 +372,14 @@ void BitcoinGUI::createToolBars()
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolbar->setContextMenuPolicy(Qt::PreventContextMenu);
 
-    if (fUseClamTheme)
-    {
-        QWidget* header = new QWidget();
-        header->setMinimumSize(160, 116);
-        header->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-        header->setStyleSheet("QWidget { background-color: rgb(24,26,30); background-repeat: no-repeat; background-image: url(:/images/header); background-position: top center; }");
-        toolbar->addWidget(header);
-        toolbar->addWidget(makeToolBarSpacer());
-    }
+    QLabel* header = new QLabel();
+    header->setStyleSheet("QWidget { background: none; }");
+    header->setPixmap(QPixmap(":/images/header"));
+    header->setMinimumSize(150, 116);
+    header->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    toolbar->addWidget(header);
+    toolbar->addWidget(makeToolBarSpacer());
 
     toolbar->addAction(overviewAction);
     toolbar->addAction(receiveCoinsAction);
@@ -387,6 +388,7 @@ void BitcoinGUI::createToolBars()
     toolbar->addAction(addressBookAction);
     toolbar->addAction(optionsAction);
     toolbar->addAction(rpcConsoleAction);
+    toolbar->addAction(styleButton);
 
     toolbar->addWidget(makeToolBarSpacer());
 
@@ -398,11 +400,13 @@ void BitcoinGUI::createToolBars()
 
     int w = 0;
 
-    foreach(QAction *action, toolbar->actions()) {
-        w = std::max(w, toolbar->widgetForAction(action)->width());
+    foreach(QAction *action, toolbar->actions())
+    {
+        w = qMax(w, toolbar->widgetForAction(action)->width());
     }
 
-    foreach(QAction *action, toolbar->actions()) {
+    foreach(QAction *action, toolbar->actions())
+    {
         toolbar->widgetForAction(action)->setFixedWidth(w);
     }
 }
@@ -639,6 +643,7 @@ void BitcoinGUI::setNumBlocks(int count)
             syncIconMovie->jumpToNextFrame();
         prevBlocks = count;
 
+        // TODO: make this show something useful
         overviewPage->showOutOfSyncWarning(true);
 
         tooltip += QString("<br>");
@@ -1100,10 +1105,10 @@ void BitcoinGUI::updateStakingIcon()
 
     if (nLastCoinStakeSearchInterval && nWeight)
     {
-	uint64_t nEstimateTime;
- 	//uint64_t nWeight = this->nWeight;
+        uint64_t nEstimateTime;
         uint64_t nNetworkWeight = GetPoSKernelPS();
-	pwalletMain->GetExpectedStakeTime(nEstimateTime);
+
+        pwalletMain->GetExpectedStakeTime(nEstimateTime);
 
         QString text;
         if (nEstimateTime < 60)
@@ -1148,4 +1153,19 @@ void BitcoinGUI::detectShutdown()
 {
     if (ShutdownRequested())
         QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+}
+
+void BitcoinGUI::updateStyleSlot()
+{
+    updateStyle();
+}
+
+void BitcoinGUI::updateStyle()
+{
+    QFile f( QApplication::applicationDirPath() + "/style.qss");
+    if (!f.open(QFile::ReadOnly))
+        return;
+
+    qDebug() << "loading theme";
+    setStyleSheet( f.readAll() );
 }

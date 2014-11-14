@@ -23,6 +23,7 @@ class QLabel;
 class QModelIndex;
 class QProgressBar;
 class QStackedWidget;
+class QPushButton;
 QT_END_NAMESPACE
 
 /**
@@ -90,6 +91,9 @@ private:
     QAction *optionsAction;
     QAction *rpcConsoleAction;
 
+    // TODO testing
+    QAction *styleButton;
+
     // other menu actions
     QAction *quitAction;
     QAction *signMessageAction;
@@ -125,6 +129,8 @@ private:
     void createTrayIcon();
 
     void toggleExportButton(bool toggle);
+
+    void updateStyle();
 
 public slots:
     /** Set number of connections shown in the UI */
@@ -206,6 +212,8 @@ private slots:
 
     /** called by a timer to check if fRequestShutdown has been set **/
     void detectShutdown();
+
+    void updateStyleSlot();
 };
 
 #endif // BITCOINGUI_H

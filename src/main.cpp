@@ -46,7 +46,7 @@ CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 uint nTargetSpacing = 1 * 5; // 5 Seconds, this was only used to the inital PoW and distrubution
 uint nTargetStakeSpacing = 1 * 60; // 60 seconds
 uint nStakeMinAge = 4 * 60 * 60; // 4 hours
-uint nStakeMaxAge = -1; // unlimited
+int64_t nStakeMaxAge = -1; // unlimited
 uint nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
 int nCoinbaseMaturity = 500;
@@ -2193,7 +2193,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig, i
             if (vtx[i].IsCoinStake())
                 return DoS(100, error("CheckBlock() : more than one coinstake"));
 
-        // NovaCoin: check proof-of-stake block signature
+        // Check proof-of-stake block signature
         if (fCheckSig && !CheckBlockSignature())
             return DoS(100, error("CheckBlock() : bad proof-of-stake block signature"));
     }
@@ -2528,7 +2528,7 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
 }
 
 #ifdef ENABLE_WALLET
-// novacoin: attempt to generate suitable proof-of-stake
+// Attempt to generate suitable proof-of-stake
 bool CBlock::SignBlock(CWallet& wallet, int64_t nFees)
 {
     // if we are trying to sign

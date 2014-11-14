@@ -67,7 +67,7 @@ public:
      */
     void refreshWallet()
     {
-        qDebug() << "TransactionTablePriv::refreshWallet";
+        qDebug() << "refreshing wallet";
         cachedWallet.clear();
         {
             LOCK2(cs_main, wallet->cs_wallet);
@@ -565,7 +565,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         }
         if(index.column() == Amount && rec->type != TransactionRecord::Generated && (rec->credit+rec->debit) > 0)
         {
-            return fUseClamTheme ? QColor(0, 255, 0) : QColor(0, 128, 0);
+            return QColor(20, 190, 20);
         }
         if(index.column() == ToAddress)
         {
