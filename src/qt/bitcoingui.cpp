@@ -225,66 +225,48 @@ BitcoinGUI::~BitcoinGUI()
 
 void BitcoinGUI::createActions()
 {
-    QActionGroup *tabGroup = new QActionGroup(this);
+    tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(QIcon(":/icons/overview"), tr("&Dashboard"), this);
+    overviewAction = new QAction(QIcon(":/icons/overview"), tr("&Dashboard"), tabGroup);
     overviewAction->setToolTip(tr("Show general overview of wallet"));
-    overviewAction->setCheckable(true);
     overviewAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_1));
-    tabGroup->addAction(overviewAction);
 
-    receiveCoinsAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Receive"), this);
+    receiveCoinsAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Receive"), tabGroup);
     receiveCoinsAction->setToolTip(tr("Show the list of addresses for receiving payments"));
-    receiveCoinsAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_2));
-    tabGroup->addAction(receiveCoinsAction);
 
-    sendCoinsAction = new QAction(QIcon(":/icons/send"), tr("&Send"), this);
+    sendCoinsAction = new QAction(QIcon(":/icons/send"), tr("&Send"), tabGroup);
     sendCoinsAction->setToolTip(tr("Send coins to a Clam address"));
-    sendCoinsAction->setCheckable(true);
     sendCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_3));
-    tabGroup->addAction(sendCoinsAction);
 
-    historyAction = new QAction(QIcon(":/icons/history"), tr("&Transactions"), this);
+    historyAction = new QAction(QIcon(":/icons/history"), tr("&Transactions"), tabGroup);
     historyAction->setToolTip(tr("Browse transaction history"));
-    historyAction->setCheckable(true);
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
-    tabGroup->addAction(historyAction);
 
-    addressBookAction = new QAction(QIcon(":/icons/address-book"), tr("&Address Book"), this);
+    addressBookAction = new QAction(QIcon(":/icons/address-book"), tr("&Address Book"), tabGroup);
     addressBookAction->setToolTip(tr("Edit the list of stored addresses and labels"));
-    addressBookAction->setCheckable(true);
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
-    tabGroup->addAction(addressBookAction);
 
-    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options"), this);
+    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options"), tabGroup);
     optionsAction->setToolTip(tr("Modify configuration options for Clam"));
-    optionsAction->setCheckable(true);
     optionsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
-    tabGroup->addAction(optionsAction);
 
-    rpcConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug Window"), this);
+    rpcConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Console"), tabGroup);
     rpcConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
-    rpcConsoleAction->setCheckable(true);
     rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
-    tabGroup->addAction(rpcConsoleAction);
 
-    styleButton = new QAction(QIcon(":/icons/debugwindow"), tr("&Press me =D"), this);
-    tabGroup->addAction(styleButton);
+    netinfoAction = new QAction(QIcon(":/icons/tx_inout"), tr("&Network Stats"), tabGroup);
+    netinfoAction->setToolTip(tr("Network statistics and information"));
+    netinfoAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
 
-    connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    styleButton = new QAction(QIcon(":/icons/debugwindow"), tr("&Press me =D"), tabGroup);
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
-    connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
-    connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(gotoSendCoinsPage()));
-    connect(historyAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
-    connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
-    connect(optionsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(optionsAction, SIGNAL(triggered()), this, SLOT(gotoOptionsPage()));
-    connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(gotoConsolePage()));
 
     quitAction = new QAction(tr("E&xit"), this);
@@ -381,14 +363,12 @@ void BitcoinGUI::createToolBars()
     toolbar->addWidget(header);
     toolbar->addWidget(makeToolBarSpacer());
 
-    toolbar->addAction(overviewAction);
-    toolbar->addAction(receiveCoinsAction);
-    toolbar->addAction(sendCoinsAction);
-    toolbar->addAction(historyAction);
-    toolbar->addAction(addressBookAction);
-    toolbar->addAction(optionsAction);
-    toolbar->addAction(rpcConsoleAction);
-    toolbar->addAction(styleButton);
+    // Add the widgets to the toolbar
+    foreach(QAction *a, tabGroup->actions())
+    {
+        a->setCheckable(true);
+        toolbar->addAction(a);
+    }
 
     toolbar->addWidget(makeToolBarSpacer());
 
@@ -799,6 +779,7 @@ void BitcoinGUI::gotoOverviewPage()
     overviewAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(overviewPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoHistoryPage()
@@ -806,6 +787,7 @@ void BitcoinGUI::gotoHistoryPage()
     historyAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(transactionsPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoAddressBookPage()
@@ -813,6 +795,7 @@ void BitcoinGUI::gotoAddressBookPage()
     addressBookAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(addressBookPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
@@ -820,6 +803,7 @@ void BitcoinGUI::gotoReceiveCoinsPage()
     receiveCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(receiveCoinsPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoSendCoinsPage()
@@ -827,6 +811,7 @@ void BitcoinGUI::gotoSendCoinsPage()
     sendCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(sendCoinsPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoOptionsPage()
@@ -845,6 +830,7 @@ void BitcoinGUI::gotoOptionsPage()
     optionsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(optionsPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoConsolePage()
@@ -852,6 +838,7 @@ void BitcoinGUI::gotoConsolePage()
     rpcConsoleAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(rpcConsole);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)

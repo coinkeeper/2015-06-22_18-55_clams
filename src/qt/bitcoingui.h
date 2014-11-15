@@ -24,6 +24,7 @@ class QModelIndex;
 class QProgressBar;
 class QStackedWidget;
 class QPushButton;
+class QActionGroup;
 QT_END_NAMESPACE
 
 /**
@@ -83,6 +84,7 @@ private:
 
     // tabgroup actions
     QMenuBar *appMenuBar;
+    QActionGroup *tabGroup;
     QAction *overviewAction;
     QAction *receiveCoinsAction;
     QAction *sendCoinsAction;
@@ -90,7 +92,7 @@ private:
     QAction *addressBookAction;
     QAction *optionsAction;
     QAction *rpcConsoleAction;
-
+    QAction *netinfoAction;
     // TODO testing
     QAction *styleButton;
 
