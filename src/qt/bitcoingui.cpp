@@ -37,8 +37,8 @@
 #include "macdockiconhandler.h"
 #endif
 
-#include <QMenuBar>
 #include <QMenu>
+#include <QMenuBar>
 #include <QIcon>
 #include <QVBoxLayout>
 #include <QToolBar>
@@ -58,6 +58,7 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QInputDialog>
+#include <QPushButton>
 
 #include <iostream>
 
@@ -85,12 +86,11 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     updateStyle();
 
     resize(850+95, 550);
-    setWindowTitle(tr("Clam") + " - " + tr("Wallet"));
+    setWindowTitle(tr("Clam Wallet"));
 #ifndef Q_OS_MAC
     qApp->setWindowIcon(QIcon(":icons/bitcoin"));
     setWindowIcon(QIcon(":icons/bitcoin"));
 #else
-    //setUnifiedTitleAndToolBarOnMac(true);
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
     // Accept D&D of URIs
@@ -106,8 +106,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     overviewPage = new OverviewPage();
     rpcConsole = new RPCConsole(this);
     transactionsPage = new QWidget(this);
-    QVBoxLayout *vbox = new QVBoxLayout();
     transactionView = new TransactionView(this);
+    QVBoxLayout *vbox = new QVBoxLayout();
     vbox->addWidget(transactionView);
     transactionsPage->setLayout(vbox);
 
@@ -124,19 +124,14 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     centralStackedWidget->addWidget(receiveCoinsPage);
     centralStackedWidget->addWidget(sendCoinsPage);
     centralStackedWidget->addWidget(rpcConsole);
-    // ! do not add options page, it gets put here on the fly
+    // ! do not add options page, it gets popped on/off on the fly
 
     QWidget *centralWidget = new QWidget();
     QVBoxLayout *centralLayout = new QVBoxLayout(centralWidget);
-#ifndef Q_OS_MAC
-    centralLayout->addWidget(appMenuBar);
-#endif
+    centralLayout->setContentsMargins(0,0,0,0);
     centralLayout->addWidget(centralStackedWidget);
 
     setCentralWidget(centralWidget);
-
-    // Create status bar
-    statusBar();
 
     // Status bar notification icons
     QWidget *frameBlocks = new QWidget();
@@ -317,27 +312,45 @@ void BitcoinGUI::createActions()
 
 void BitcoinGUI::createMenuBar()
 {
-    appMenuBar = new QMenuBar();
+    menuBlocks = new QWidget();
+    menuBlocks->setContentsMargins(0,0,0,0);
+    menuBlocks->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    menuBlocks->setStyleSheet("QWidget { background: none; margin: 0px; margin-bottom: 5px; margin-top: 5px; }");
+
+    QHBoxLayout *menuBlocksLayout = new QHBoxLayout(menuBlocks);
+    menuBlocksLayout->setContentsMargins(0,0,0,0);
+    menuBlocksLayout->setSpacing(12);
+    menuBlocksLayout->setAlignment(Qt::AlignHCenter);
 
     // Configure the menus
-    QMenu *file = appMenuBar->addMenu(tr("&File"));
-    file->addAction(backupWalletAction);
-    file->addAction(importAction);
-    file->addAction(exportAction);
-    file->addAction(signMessageAction);
-    file->addAction(verifyMessageAction);
-    file->addSeparator();
-    file->addAction(quitAction);
+    fileMenu = new QMenu();
+    fileMenu->addAction(backupWalletAction);
+    fileMenu->addAction(importAction);
+    fileMenu->addAction(exportAction);
+    fileMenu->addAction(signMessageAction);
+    fileMenu->addAction(verifyMessageAction);
+    fileMenu->addSeparator();
+    fileMenu->addAction(quitAction);
 
-    QMenu *settings = appMenuBar->addMenu(tr("&Settings"));
-    settings->addAction(encryptWalletAction);
-    settings->addAction(changePassphraseAction);
-    settings->addAction(unlockWalletAction);
-    settings->addAction(lockWalletAction);
+    miscMenu = new QMenu();
+    miscMenu->addAction(encryptWalletAction);
+    miscMenu->addAction(changePassphraseAction);
+    miscMenu->addAction(unlockWalletAction);
+    miscMenu->addAction(lockWalletAction);
+    miscMenu->addSeparator();
+    miscMenu->addAction(aboutAction);
+    miscMenu->addAction(aboutQtAction);
 
-    QMenu *help = appMenuBar->addMenu(tr("&Help"));
-    help->addAction(aboutAction);
-    help->addAction(aboutQtAction);
+    // make some buttons instead of qmenubar
+    QPushButton *fileButton = new QPushButton(" &File ");
+    QPushButton *miscButton = new QPushButton(" &Misc ");
+
+    menuBlocksLayout->addWidget(fileButton);
+    menuBlocksLayout->addWidget(miscButton);
+
+    connect( fileButton, SIGNAL(released()), this, SLOT(showFileMenu()) );
+    connect( miscButton, SIGNAL(released()), this, SLOT(showMiscMenu()) );
+
 }
 
 static QWidget* makeToolBarSpacer()
@@ -350,18 +363,19 @@ static QWidget* makeToolBarSpacer()
 
 void BitcoinGUI::createToolBars()
 {
-    toolbar = new QToolBar(tr("Tabs toolbar"));
+    toolbar = new QToolBar();
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolbar->setContextMenuPolicy(Qt::PreventContextMenu);
 
     QLabel* header = new QLabel();
     header->setStyleSheet("QWidget { background: none; }");
     header->setPixmap(QPixmap(":/images/header"));
-    header->setMinimumSize(150, 116);
+    header->resize(150, 116);
     header->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+    // Add header and menu buttons
     toolbar->addWidget(header);
-    toolbar->addWidget(makeToolBarSpacer());
+    toolbar->addWidget(menuBlocks);
 
     // Add the widgets to the toolbar
     foreach(QAction *a, tabGroup->actions())
@@ -375,20 +389,17 @@ void BitcoinGUI::createToolBars()
     toolbar->setOrientation(Qt::Vertical);
     toolbar->setFloatable(false); // Disable dockable
     toolbar->setMovable(false); // Disable drag/drop handle
+    //toolbar->resize(150);
 
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
-    int w = 0;
+    // Fixed width to widest of all toolbar 'buttons'
+    int widestWidth = 0;
+    foreach(QAction *action, tabGroup->actions())
+        widestWidth = qMax(widestWidth, toolbar->widgetForAction(action)->width());
 
-    foreach(QAction *action, toolbar->actions())
-    {
-        w = qMax(w, toolbar->widgetForAction(action)->width());
-    }
-
-    foreach(QAction *action, toolbar->actions())
-    {
-        toolbar->widgetForAction(action)->setFixedWidth(w);
-    }
+    foreach(QAction *action, tabGroup->actions())
+        toolbar->widgetForAction(action)->setFixedWidth(widestWidth);
 }
 
 void BitcoinGUI::setClientModel(ClientModel *clientModel)
@@ -557,7 +568,6 @@ void BitcoinGUI::setNumBlocks(int count)
     if (!clientModel || (clientModel->getNumConnections() == 0 && !clientModel->isImporting()))
     {
         statusBar()->setVisible(false);
-
         return;
     }
 
@@ -1147,12 +1157,46 @@ void BitcoinGUI::updateStyleSlot()
     updateStyle();
 }
 
+void BitcoinGUI::showFileMenu()
+{
+    fileMenu->exec(QCursor::pos());
+}
+
+void BitcoinGUI::showMiscMenu()
+{
+    miscMenu->exec(QCursor::pos());
+}
+
 void BitcoinGUI::updateStyle()
 {
-    QFile f( QApplication::applicationDirPath() + "/style.qss");
-    if (!f.open(QFile::ReadOnly))
+    if (!fUseClamTheme)
         return;
 
+    QString qssPath = QApplication::applicationDirPath() + "/style.qss";
+
+    QFile f( qssPath );
+
+    if (!f.exists())
+        writeDefultStyleSheet( qssPath );
+
+    if (!f.open(QFile::ReadOnly))
+    {
+        qDebug() << "failed to open style sheet";
+        return;
+    }
+
     qDebug() << "loading theme";
-    setStyleSheet( f.readAll() );
+    qApp->setStyleSheet( f.readAll() );
+}
+
+void BitcoinGUI::writeDefultStyleSheet(const QString &path)
+{
+    qDebug() << "writing default style sheet";
+
+    QFile qss( ":/text/stylesheet" );
+    qss.open( QFile::ReadOnly );
+
+    QFile f( path );
+    f.open( QFile::ReadWrite );
+    f.write( qss.readAll() );
 }

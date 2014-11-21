@@ -83,7 +83,7 @@ private:
     QProgressBar *progressBar;
 
     // tabgroup actions
-    QMenuBar *appMenuBar;
+    QWidget *menuBlocks;
     QActionGroup *tabGroup;
     QAction *overviewAction;
     QAction *receiveCoinsAction;
@@ -97,6 +97,8 @@ private:
     QAction *styleButton;
 
     // other menu actions
+    QMenu *fileMenu;
+    QMenu *miscMenu;
     QAction *quitAction;
     QAction *signMessageAction;
     QAction *verifyMessageAction;
@@ -123,16 +125,14 @@ private:
 
     /** Create the main UI actions. */
     void createActions();
-    /** Create the menu bar and sub-menus. */
     void createMenuBar();
-    /** Create the toolbars */
     void createToolBars();
-    /** Create system tray (notification) icon */
     void createTrayIcon();
 
     void toggleExportButton(bool toggle);
 
     void updateStyle();
+    void writeDefultStyleSheet(const QString &path);
 
 public slots:
     /** Set number of connections shown in the UI */
@@ -216,6 +216,8 @@ private slots:
     void detectShutdown();
 
     void updateStyleSlot();
+    void showFileMenu();
+    void showMiscMenu();
 };
 
 #endif // BITCOINGUI_H

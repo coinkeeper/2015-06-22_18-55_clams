@@ -66,7 +66,7 @@ public:
         {
             foreground = option.palette.color(QPalette::Text);
         }
-        //painter->setPen(fUseClamTheme ? QColor(255, 255, 255) : foreground);
+        painter->setPen(foreground);
         QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true);
         if(!confirmed)
         {
@@ -74,7 +74,7 @@ public:
         }
         painter->drawText(amountRect, Qt::AlignRight|Qt::AlignVCenter, amountText);
 
-        //painter->setPen(fUseClamTheme ? QColor(96, 101, 110) : option.palette.color(QPalette::Text));
+        painter->setPen(foreground);
         painter->drawText(amountRect, Qt::AlignLeft|Qt::AlignVCenter, GUIUtil::dateTimeStr(date));
 
         painter->restore();
