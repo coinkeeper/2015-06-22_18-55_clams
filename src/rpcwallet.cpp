@@ -1232,7 +1232,7 @@ Value listaccounts(const Array& params, bool fHelp)
         list<pair<CTxDestination, int64_t> > listReceived;
         list<pair<CTxDestination, int64_t> > listSent;
 
-	// don't count staking activity in account balances
+        // don't count staking in account balances - if you stake 5 into 6, it was adding 6, and not taking off the 5
         if (wtx.IsCoinBase() || wtx.IsCoinStake())
             continue;
 
