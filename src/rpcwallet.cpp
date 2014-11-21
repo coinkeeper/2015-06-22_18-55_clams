@@ -594,6 +594,8 @@ Value getbalance(const Array& params, bool fHelp)
         return  ValueFromAmount(nBalance);
     }
 
+    throw runtime_error("getbalance doesn't work for specific accounts.");
+
     accountingDeprecationCheck();
 
     string strAccount = AccountFromValue(params[0]);
