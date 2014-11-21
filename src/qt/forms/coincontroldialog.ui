@@ -14,6 +14,18 @@
    <string>Coin Control</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>6</number>
+   </property>
+   <property name="topMargin">
+    <number>6</number>
+   </property>
+   <property name="rightMargin">
+    <number>6</number>
+   </property>
+   <property name="bottomMargin">
+    <number>6</number>
+   </property>
    <item row="3" column="0">
     <widget class="CoinControlTreeWidget" name="treeWidget">
      <property name="contextMenuPolicy">
