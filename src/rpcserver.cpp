@@ -245,6 +245,7 @@ static const CRPCCommand vRPCCommands[] =
     { "validateaddress",        &validateaddress,        true,      false,     false },
     { "validatepubkey",         &validatepubkey,         true,      false,     false },
     { "verifymessage",          &verifymessage,          false,     false,     false },
+    { "dumpbootstrap",          &dumpbootstrap,          false,     false,     false },
 
 #ifdef ENABLE_WALLET
     { "getmininginfo",          &getmininginfo,          true,      false,     false },
