@@ -250,11 +250,11 @@ void BitcoinGUI::createActions()
     rpcConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
     rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
 
-    netinfoAction = new QAction(QIcon(":/icons/tx_inout"), tr("&Network Stats"), tabGroup);
-    netinfoAction->setToolTip(tr("Network statistics and information"));
-    netinfoAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
+//    netinfoAction = new QAction(QIcon(":/icons/tx_inout"), tr("&Network Stats"), tabGroup);
+//    netinfoAction->setToolTip(tr("Network statistics and information"));
+//    netinfoAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
 
-    styleButton = new QAction(QIcon(":/icons/debugwindow"), tr("&Press me =D"), tabGroup);
+    styleButton = new QAction(QIcon(":/icons/tx_inout"), tr("&Update Style"), tabGroup);
 
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
@@ -1189,14 +1189,14 @@ void BitcoinGUI::updateStyle()
     qApp->setStyleSheet( f.readAll() );
 }
 
-void BitcoinGUI::writeDefultStyleSheet(const QString &path)
+void BitcoinGUI::writeDefultStyleSheet(const QString &qssPath)
 {
     qDebug() << "writing default style sheet";
 
     QFile qss( ":/text/stylesheet" );
     qss.open( QFile::ReadOnly );
 
-    QFile f( path );
+    QFile f( qssPath );
     f.open( QFile::ReadWrite );
     f.write( qss.readAll() );
 }

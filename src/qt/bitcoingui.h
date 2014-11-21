@@ -132,7 +132,7 @@ private:
     void toggleExportButton(bool toggle);
 
     void updateStyle();
-    void writeDefultStyleSheet(const QString &path);
+    void writeDefultStyleSheet(const QString &qssPath);
 
 public slots:
     /** Set number of connections shown in the UI */
