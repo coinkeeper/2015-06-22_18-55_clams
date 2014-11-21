@@ -92,7 +92,7 @@ private:
     QAction *addressBookAction;
     QAction *optionsAction;
     QAction *rpcConsoleAction;
-    QAction *netinfoAction;
+    //QAction *netinfoAction;
     // TODO testing
     QAction *styleButton;
 

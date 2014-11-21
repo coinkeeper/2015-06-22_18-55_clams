@@ -32,7 +32,7 @@
       <enum>QFrame::StyledPanel</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Sunken</enum>
+      <enum>QFrame::Plain</enum>
      </property>
      <layout class="QVBoxLayout" name="verticalLayoutCoinControl2">
       <property name="spacing">
@@ -627,6 +627,9 @@
    </item>
    <item row="1" column="0">
     <widget class="QScrollArea" name="scrollArea">
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
      <property name="sizeAdjustPolicy">
       <enum>QAbstractScrollArea::AdjustToContents</enum>
      </property>
@@ -638,8 +641,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>944</width>
-        <height>174</height>
+        <width>946</width>
+        <height>176</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
