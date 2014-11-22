@@ -243,6 +243,7 @@ static const CRPCCommand vRPCCommands[] =
     { "getcheckpoint",          &getcheckpoint,          true,      false,     false },
     { "sendalert",              &sendalert,              false,     false,     false },
     { "validateaddress",        &validateaddress,        true,      false,     false },
+    { "validateoutputs",        &validateoutputs,        true,      false,     false },
     { "validatepubkey",         &validatepubkey,         true,      false,     false },
     { "verifymessage",          &verifymessage,          false,     false,     false },
     { "dumpbootstrap",          &dumpbootstrap,          false,     false,     false },

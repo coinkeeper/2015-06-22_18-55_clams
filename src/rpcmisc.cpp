@@ -9,6 +9,7 @@
 #include "net.h"
 #include "netbase.h"
 #include "rpcserver.h"
+#include "txdb.h"
 #include "timedata.h"
 #include "util.h"
 #ifdef ENABLE_WALLET
@@ -142,6 +143,62 @@ Value validateaddress(const Array& params, bool fHelp)
     }
     return ret;
 }
+
+
+Value validateoutputs(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "validateoutputs [{\"txid\":txid,\"vout\":n},...]\n"
+            "Return information about outputs (whether they exist, and whether they have been spent).");
+
+    Array inputs = params[0].get_array();
+
+    CTxDB txdb("r");
+    CTxIndex txindex;
+    Array ret;
+
+    BOOST_FOREACH(Value& input, inputs)
+    {
+        const Object& o = input.get_obj();
+
+        const Value& txid_v = find_value(o, "txid");
+        if (txid_v.type() != str_type)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing txid key");
+        string txid = txid_v.get_str();
+        if (!IsHex(txid))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected hex txid");
+
+        const Value& vout_v = find_value(o, "vout");
+        if (vout_v.type() != int_type)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing vout key");
+        int nOutput = vout_v.get_int();
+        if (nOutput < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
+
+        Object entry;
+        entry.push_back(Pair("txid", txid));
+        entry.push_back(Pair("vout", nOutput));
+
+        if (txdb.ReadTxIndex(uint256(txid), txindex))
+            if ((unsigned)nOutput < txindex.vSpent.size())
+                if (txindex.vSpent[nOutput].IsNull())
+                    entry.push_back(Pair("status", "unspent"));
+                else
+                    entry.push_back(Pair("status", "spent"));
+            else {
+                entry.push_back(Pair("status", "vout too high"));
+                entry.push_back(Pair("outputs", txindex.vSpent.size()));
+            }
+        else
+            entry.push_back(Pair("status", "txid not found"));
+
+        ret.push_back(entry);
+    }
+
+    return ret;
+}
+
 
 Value validatepubkey(const Array& params, bool fHelp)
 {

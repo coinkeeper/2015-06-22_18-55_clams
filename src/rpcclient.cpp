@@ -152,6 +152,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "keypoolrefill", 0 },
     { "importprivkey", 2 },
     { "dumpbootstrap", 1 },
+    { "validateoutputs", 0 },
 };
 
 class CRPCConvertTable
