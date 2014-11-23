@@ -145,6 +145,27 @@ Value validateaddress(const Array& params, bool fHelp)
 }
 
 
+static void validateoutputs_check_unconfirmed_spend(COutPoint& outpoint, CTransaction& tx, Object& entry)
+{
+    // check whether unconfirmed output is already spent
+    LOCK(mempool.cs); // protect mempool.mapNextTx
+    if (mempool.mapNextTx.count(outpoint)) {
+        // pull details from mempool
+        CInPoint in = mempool.mapNextTx[outpoint];
+        Object details;
+        entry.push_back(Pair("status", "spent"));
+        details.push_back(Pair("txid", in.ptx->GetHash().GetHex()));
+        details.push_back(Pair("vin", int(in.n)));
+        details.push_back(Pair("confirmations", 0));
+        entry.push_back(Pair("spent", details));
+    } else {
+        entry.push_back(Pair("status", "unspent"));
+
+        const CScript& pk = tx.vout[outpoint.n].scriptPubKey;
+        entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
+    }
+}
+
 Value validateoutputs(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
@@ -180,19 +201,104 @@ Value validateoutputs(const Array& params, bool fHelp)
         entry.push_back(Pair("txid", txid));
         entry.push_back(Pair("vout", nOutput));
 
-        if (txdb.ReadTxIndex(uint256(txid), txindex))
-            if ((unsigned)nOutput < txindex.vSpent.size())
-                if (txindex.vSpent[nOutput].IsNull())
-                    entry.push_back(Pair("status", "unspent"));
-                else
-                    entry.push_back(Pair("status", "spent"));
-            else {
-                entry.push_back(Pair("status", "vout too high"));
-                entry.push_back(Pair("outputs", txindex.vSpent.size()));
-            }
-        else
-            entry.push_back(Pair("status", "txid not found"));
+        CTransaction tx;
+        uint256 hashBlock = 0;
+        CTxIndex txindex;
+        COutPoint outpoint(uint256(txid), nOutput);
 
+        // find the output
+        if (!GetTransaction(uint256(txid), tx, hashBlock, txindex)) {
+            entry.push_back(Pair("status", "txid not found"));
+            ret.push_back(entry);
+            continue;
+        }
+
+        // check that the output number is in range
+        if ((unsigned)nOutput >= tx.vout.size()) {
+            entry.push_back(Pair("status", "vout too high"));
+            entry.push_back(Pair("outputs", tx.vout.size()));
+            ret.push_back(entry);
+            continue;
+        }
+
+        entry.push_back(Pair("amount", ValueFromAmount(tx.vout[nOutput].nValue)));
+
+        // get the address and account
+        CTxDestination address;
+        if (ExtractDestination(tx.vout[nOutput].scriptPubKey, address))
+        {
+            entry.push_back(Pair("address", CBitcoinAddress(address).ToString()));
+            if (pwalletMain->mapAddressBook.count(address))
+                entry.push_back(Pair("account", pwalletMain->mapAddressBook[address]));
+        }
+
+        // is the output confirmed?
+        if (hashBlock == 0) {
+            entry.push_back(Pair("confirmations", 0));
+            validateoutputs_check_unconfirmed_spend(outpoint, tx, entry);
+            ret.push_back(entry);
+            continue;
+        }
+
+        // find the block containing the output
+        map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashBlock);
+        if (mi != mapBlockIndex.end() && (*mi).second)
+        {
+            CBlockIndex* pindex = (*mi).second;
+            if (pindex->IsInMainChain()) {
+                entry.push_back(Pair("height", pindex->nHeight));
+                entry.push_back(Pair("confirmations", 1 + nBestHeight - pindex->nHeight));
+            } else {
+                LogPrintf("can't find block with hash %s\n", hashBlock.GetHex().c_str());
+                entry.push_back(Pair("confirmations", 0));
+            }
+        }
+
+        // check whether any confirmed transaction spends this output
+        if (txindex.vSpent[nOutput].IsNull()) {
+            // if not, check for an unconfirmed spend
+            validateoutputs_check_unconfirmed_spend(outpoint, tx, entry);
+            ret.push_back(entry);
+            continue;
+        }
+
+        entry.push_back(Pair("status", "spent"));
+
+        Object details;
+        CTransaction spending_tx;
+
+        // load the transaction that spends this output
+        spending_tx.ReadFromDisk(txindex.vSpent[nOutput]);
+
+        details.push_back(Pair("txid", spending_tx.GetHash().GetHex()));
+
+        // find this output's input number in the spending transaction
+        int n = 0;
+        BOOST_FOREACH(CTxIn input, spending_tx.vin) {
+            if (input.prevout == outpoint) {
+                details.push_back(Pair("vin", n));
+                break;
+            }
+            n++;
+        }
+
+        // get the spending transaction
+        if (GetTransaction(uint256(spending_tx.GetHash()), tx, hashBlock, txindex) && hashBlock != 0) {
+            map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashBlock);
+            if (mi != mapBlockIndex.end() && (*mi).second)
+            {
+                CBlockIndex* pindex = (*mi).second;
+                if (pindex->IsInMainChain()) {
+                    details.push_back(Pair("height", pindex->nHeight));
+                    details.push_back(Pair("confirmations", 1 + nBestHeight - pindex->nHeight));
+                } else {
+                    LogPrintf("can't find block with hash %s\n", hashBlock.GetHex().c_str());
+                    details.push_back(Pair("confirmations", 0));
+                }
+            }
+        }
+
+        entry.push_back(Pair("spent", details));
         ret.push_back(entry);
     }
 

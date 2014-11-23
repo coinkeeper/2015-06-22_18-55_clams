@@ -147,6 +147,7 @@ uint ComputeMinWork(uint nBase, int64_t nTime);
 uint ComputeMinStake(uint nBase, int64_t nTime, uint nBlockTime);
 bool IsInitialBlockDownload();
 std::string GetWarnings(std::string strFor);
+bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock, CTxIndex& txindex);
 bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock);
 uint256 WantedByOrphan(const COrphanBlock* pblockOrphan);
 const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfStake);
