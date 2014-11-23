@@ -2806,7 +2806,7 @@ struct CImportingNow
 
 void ThreadImport(std::vector<boost::filesystem::path> vImportFiles)
 {
-    RenameThread("blackcoin-loadblk");
+    RenameThread("Clam-loadblk");
 
     CImportingNow imp;
 

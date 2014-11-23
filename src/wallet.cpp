@@ -14,6 +14,7 @@
 #include "ui_interface.h"
 #include "walletdb.h"
 
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/range/algorithm.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
