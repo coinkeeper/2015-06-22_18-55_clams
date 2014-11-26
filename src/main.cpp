@@ -14,6 +14,8 @@
 #include "db.h"
 #include "init.h"
 #include "kernel.h"
+#include "chainparams.h"
+#include "base58.h"
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include "util.h"
@@ -46,8 +48,10 @@ CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 uint nTargetSpacing = 1 * 5; // 5 Seconds, this was only used to the inital PoW and distrubution
 uint nTargetStakeSpacing = 1 * 60; // 60 seconds
 uint nStakeMinAge = 4 * 60 * 60; // 4 hours
-int64_t nStakeMaxAge = -1; // unlimited
+int64 nStakeMaxAge = -1; // unlimited
 uint nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
+ 
+const int DISTRIBUTION_END = 10000;
 
 int nCoinbaseMaturity = 500;
 CBlockIndex* pindexGenesisBlock = NULL;
@@ -1219,7 +1223,7 @@ static uint GetNextTargetRequiredV3(const CBlockIndex* pindexLast, bool fProofOf
  
 uint GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
-    if (pindexLast->nHeight < 10000)
+    if (pindexLast->nHeight < DISTRIBUTION_END)
         return GetNextTargetRequiredV1(pindexLast, fProofOfStake);
     else if (!IsProtocolV2(pindexLast->nHeight))
         return GetNextTargetRequiredV2(pindexLast, fProofOfStake);
@@ -1333,7 +1337,7 @@ bool CTransaction::DisconnectInputs(CTxDB& txdb)
  
  
 bool CTransaction::FetchInputs(CTxDB& txdb, const map<uint256, CTxIndex>& mapTestPool,
-                               bool fBlock, bool fMiner, MapPrevTx& inputsRet, bool& fInvalid)
+                               bool fBlock, bool fMiner, MapPrevTx& inputsRet, bool& fInvalid, int64_t* nDigs)
 {
     // FetchInputs can return false either because we just haven't seen some inputs
     // (in which case the transaction should be stored as an orphan)
@@ -1381,6 +1385,37 @@ bool CTransaction::FetchInputs(CTxDB& txdb, const map<uint256, CTxIndex>& mapTes
             // Get prev tx from disk
             if (!txPrev.ReadFromDisk(txindex.pos))
                 return error("FetchInputs() : %s ReadFromDisk prev tx %s failed", GetHash().ToString(),  prevout.hash.ToString());
+
+            // if nDigs is a non-NULL pointer, check how many initial-distribution CLAMs this transaction moves
+            if (nDigs) {
+                CBlock block;
+                if (block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false)) {
+                    uint256 hashBlock = block.GetHash();
+                    map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashBlock);
+                    if (mi != mapBlockIndex.end() && (*mi).second) {
+                        CBlockIndex* pindex = (*mi).second;
+                        if (pindex->nHeight < DISTRIBUTION_END) {
+                            if (pindex->IsInMainChain()) {
+                                unsigned int n = vin[i].prevout.n;
+
+                                if (txPrev.vout[n].nValue == 460545574) {
+                                    *nDigs += txPrev.vout[n].nValue;
+                                    
+                                    CTxDestination address;
+                                    LogPrintf("DIG: %s:%d %s from block %d\n",
+                                              txPrev.GetHash().ToString(), n,
+                                              ExtractDestination(txPrev.vout[n].scriptPubKey, address) ?
+                                              CBitcoinAddress(address).ToString() : "[unknown]",
+                                              pindex->nHeight);
+                                }
+                            } else
+                                LogPrintf("ERROR: block isn't in main chain\n");
+                        }
+                    } else
+                        LogPrintf("ERROR: can't find block hash in index\n");
+                } else
+                    LogPrintf("ERROR: can't read block from disk\n");
+            }
         }
     }
  
@@ -1602,6 +1637,9 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
     int64_t nFees = 0;
     int64_t nValueIn = 0;
     int64_t nValueOut = 0;
+    int64_t nValueDig = 0;
+    int64_t nValueStake = 0;
+    int64_t nValueBurned = 0;
     int64_t nStakeReward = 0;
     uint nSigOps = 0;
     BOOST_FOREACH(CTransaction& tx, vtx)
@@ -1641,7 +1679,8 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
         else
         {
             bool fInvalid;
-            if (!tx.FetchInputs(txdb, mapQueuedChanges, true, false, mapInputs, fInvalid))
+            int64_t nDigs = 0;
+            if (!tx.FetchInputs(txdb, mapQueuedChanges, true, false, mapInputs, fInvalid, pindex->nHeight >= DISTRIBUTION_END ? &nDigs : 0))
                 return false;
 
             // Add in sigops done by pay-to-script-hash inputs;
@@ -1655,6 +1694,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
             int64_t nTxValueOut = tx.GetValueOut();
             nValueIn += nTxValueIn;
             nValueOut += nTxValueOut;
+            nValueDig += nDigs;
             if (!tx.IsCoinStake())
                 nFees += nTxValueIn - nTxValueOut;
             if (tx.IsCoinStake())
@@ -1665,6 +1705,13 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
         }
 
         mapQueuedChanges[hashTx] = CTxIndex(posThisTx, tx.vout.size());
+
+        // check for burned coins (sent to xCLAMBURNXXXXXXXXXXXXXXXXXXX1HaxZH)
+        BOOST_FOREACH(CTxOut& txout, tx.vout)
+            if (HexStr(txout.scriptPubKey.begin(), txout.scriptPubKey.end()) == "76a9142c2a57256197df6a1c7d6f14daccf4c3dcf4de4288ac") {
+                LogPrintf("BURN: %s\n", FormatMoney(txout.nValue));
+                nValueBurned += txout.nValue;
+            }
     }
 
     if (IsProofOfWork())
@@ -1687,11 +1734,16 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
 
         if (nStakeReward > nCalculatedStakeReward)
             return DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
+
+        nValueStake = nStakeReward - nFees;
     }
 
     // ppcoin: track money supply and mint amount info
     pindex->nMint = nValueOut - nValueIn + nFees;
-    pindex->nMoneySupply = (pindex->pprev? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn;
+    pindex->nMoneySupply = (pindex->pprev? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn - nValueBurned;
+    pindex->nDigsupply = (pindex->pprev? pindex->pprev->nDigsupply : 0) + nValueDig;
+    pindex->nStakeSupply = (pindex->pprev? pindex->pprev->nStakeSupply : 0) + nValueStake;
+
     if (!txdb.WriteBlockIndex(CDiskBlockIndex(pindex)))
         return error("Connect() : WriteBlockIndex for pindex failed");
 

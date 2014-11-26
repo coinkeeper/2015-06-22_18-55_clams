@@ -397,7 +397,7 @@ public:
      @return	Returns true if all inputs are in txdb or mapTestPool
      */
     bool FetchInputs(CTxDB& txdb, const std::map<uint256, CTxIndex>& mapTestPool,
-                     bool fBlock, bool fMiner, MapPrevTx& inputsRet, bool& fInvalid);
+                     bool fBlock, bool fMiner, MapPrevTx& inputsRet, bool& fInvalid, int64_t* nDigs = 0);
 
     /** Sanity check previous transactions, then, if all checks succeed,
         mark them as spent by this transaction.
@@ -884,6 +884,8 @@ public:
 
     int64_t nMint;
     int64_t nMoneySupply;
+    int64_t nDigsupply;
+    int64_t nStakeSupply;
 
     uint nFlags;  // ppcoin: block index flags
     enum  
@@ -919,6 +921,8 @@ public:
         nChainTrust = 0;
         nMint = 0;
         nMoneySupply = 0;
+        nDigsupply = 0;
+        nStakeSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         hashProof = 0;
@@ -943,6 +947,8 @@ public:
         nChainTrust = 0;
         nMint = 0;
         nMoneySupply = 0;
+        nDigsupply = 0;
+        nStakeSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         hashProof = 0;
@@ -1122,6 +1128,8 @@ public:
         READWRITE(nHeight);
         READWRITE(nMint);
         READWRITE(nMoneySupply);
+        READWRITE(nDigsupply);
+        READWRITE(nStakeSupply);
         READWRITE(nFlags);
         READWRITE(nStakeModifier);
         if (IsProofOfStake())
