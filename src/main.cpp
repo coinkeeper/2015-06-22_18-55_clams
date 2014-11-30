@@ -3166,6 +3166,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!IsInitialBlockDownload())
             Checkpoints::AskForPendingSyncCheckpoint(pfrom);
 
+        pfrom->nTimeOffset = nTime - GetTime();
+
         if (GetBoolArg("-synctime", true))
             AddTimeData(pfrom->addr, nTime);
     }
