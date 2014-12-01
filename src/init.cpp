@@ -43,7 +43,7 @@ bool fMinimizeCoinAge;
 unsigned int nNodeLifespan;
 unsigned int nDerivationMethodIndex;
 unsigned int nMinerSleep;
-int64_t nMaxStakeValue;
+unsigned int nMaxStakeValue;
 bool fUseFastIndex;
 enum Checkpoints::CPMode CheckpointsMode;
 
