@@ -26,7 +26,7 @@ int64_t nTransactionFee = MIN_TX_FEE;
 int64_t nReserveBalance = 0;
 int64_t nMinimumInputValue = 0;
 
-extern int64_t nMaxStakeValue;
+extern unsigned int nMaxStakeValue;
 
 static unsigned int GetStakeSplitAge() { return 1 * 24 * 60 * 60; }
 
