@@ -27,6 +27,7 @@ int64_t nReserveBalance = 0;
 int64_t nMinimumInputValue = 0;
 
 extern unsigned int nMaxStakeValue;
+extern int64_t nSplitSize;
 
 static unsigned int GetStakeSplitAge() { return 1 * 24 * 60 * 60; }
 
@@ -2041,9 +2042,28 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, uint nBits, int64_t nSe
     // Set output amount
     if (txNew.vout.size() == 3)
     {
-        txNew.vout[1].nValue = (nCredit / 2 / CENT) * CENT;
-        txNew.vout[2].nValue = nCredit - txNew.vout[1].nValue;
-    }
+        if (nSplitSize) {
+            int n = 1;
+
+            while (true) {
+                if (n > 2)
+                    txNew.vout.push_back(CTxOut(0, txNew.vout[1].scriptPubKey));
+
+                if (nCredit < nSplitSize * 2) {
+                    txNew.vout[n].nValue = nCredit;
+                    break;
+                }
+
+                txNew.vout[n].nValue = nSplitSize;
+                nCredit -= nSplitSize;
+
+                n++;
+            }
+        } else {
+            txNew.vout[1].nValue = (nCredit / 2 / CENT) * CENT;
+            txNew.vout[2].nValue = nCredit - txNew.vout[1].nValue;
+        }
+    }            
     else
         txNew.vout[1].nValue = nCredit;
 

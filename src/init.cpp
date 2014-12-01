@@ -44,6 +44,7 @@ unsigned int nNodeLifespan;
 unsigned int nDerivationMethodIndex;
 unsigned int nMinerSleep;
 unsigned int nMaxStakeValue;
+int64_t nSplitSize;
 bool fUseFastIndex;
 enum Checkpoints::CPMode CheckpointsMode;
 
@@ -337,6 +338,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     fUseFastIndex = GetBoolArg("-fastindex", true);
     nMinerSleep = GetArg("-minersleep", 500);
     nMaxStakeValue = GetArg("-maxstakevalue", 0) * COIN;
+    nSplitSize = GetArg("-splitsize", 0) * COIN;
 
     CheckpointsMode = Checkpoints::STRICT;
     std::string strCpMode = GetArg("-cppolicy", "strict");
