@@ -40,9 +40,10 @@ CClientUIInterface uiInterface;
 std::string strWalletFileName;
 bool fConfChange;
 bool fMinimizeCoinAge;
-uint nNodeLifespan;
-uint nDerivationMethodIndex;
-uint nMinerSleep;
+unsigned int nNodeLifespan;
+unsigned int nDerivationMethodIndex;
+unsigned int nMinerSleep;
+unsigned int nMaxStakeValue;
 bool fUseFastIndex;
 enum Checkpoints::CPMode CheckpointsMode;
 
@@ -335,6 +336,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     nNodeLifespan = GetArg("-addrlifespan", 7);
     fUseFastIndex = GetBoolArg("-fastindex", true);
     nMinerSleep = GetArg("-minersleep", 500);
+    nMaxStakeValue = GetArg("-maxstakevalue", 0) * COIN;
 
     CheckpointsMode = Checkpoints::STRICT;
     std::string strCpMode = GetArg("-cppolicy", "strict");
