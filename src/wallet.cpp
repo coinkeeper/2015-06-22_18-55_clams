@@ -27,7 +27,7 @@ int64_t nTransactionFee = MIN_TX_FEE;
 int64_t nReserveBalance = 0;
 int64_t nMinimumInputValue = 0;
 
-extern unsigned int nMaxStakeValue;
+extern int64_t nMaxStakeValue;
 extern int64_t nSplitSize;
 extern int64_t nCombineLimit;
 
