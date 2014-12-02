@@ -273,7 +273,15 @@ Value getblock(const Array& params, bool fHelp)
             "Returns details of a block with given block-hash.");
 
     std::string strHash = params[0].get_str();
-    uint256 hash(strHash);
+    size_t len = strHash.length();
+
+    if (len < 8)
+        throw runtime_error("Please provide at least the first 8 digits of the block hash");
+
+    CBlockIndex* pblockindex;
+
+    if (len == 64) {
+        uint256 hash(strHash);
 
         if (mapBlockIndex.count(hash) == 0)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -282,6 +290,7 @@ Value getblock(const Array& params, bool fHelp)
     } else {
         pblockindex = NULL;
 
+        // std::map<uint256, CBlockIndex*> mapBlockIndex;
         BOOST_FOREACH(const PAIRTYPE(uint256, CBlockIndex*)& item, mapBlockIndex) {
             if (item.first.GetHex().substr(0, len) == strHash) {
                 pblockindex = item.second;
@@ -294,7 +303,6 @@ Value getblock(const Array& params, bool fHelp)
     }
 
     CBlock block;
-    CBlockIndex* pblockindex = mapBlockIndex[hash];
     block.ReadFromDisk(pblockindex, true);
 
     return blockToJSON(block, pblockindex, params.size() > 1 ? params[1].get_bool() : false);
