@@ -275,8 +275,23 @@ Value getblock(const Array& params, bool fHelp)
     std::string strHash = params[0].get_str();
     uint256 hash(strHash);
 
-    if (mapBlockIndex.count(hash) == 0)
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        if (mapBlockIndex.count(hash) == 0)
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+
+        pblockindex = mapBlockIndex[hash];
+    } else {
+        pblockindex = NULL;
+
+        BOOST_FOREACH(const PAIRTYPE(uint256, CBlockIndex*)& item, mapBlockIndex) {
+            if (item.first.GetHex().substr(0, len) == strHash) {
+                pblockindex = item.second;
+                break;
+            }
+        }
+
+        if (!pblockindex)
+            throw runtime_error("Block hash not found");
+    }
 
     CBlock block;
     CBlockIndex* pblockindex = mapBlockIndex[hash];
