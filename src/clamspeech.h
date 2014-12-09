@@ -2,10 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <vector>
-using namespace std;
+#include <string>
 
-vector<string> clamSpeech;
+extern std::vector<std::string> clamSpeechList;
+extern std::vector<std::string> clamSpeech;
+extern std::vector<std::string> quoteList;
 
-clamSpeech.push_back("This is Quote 1");
-clamSpeech.push_back("This is Quote 2");
-clamSpeech.push_back("This is Quote 3");
+void CSLoad();
+
