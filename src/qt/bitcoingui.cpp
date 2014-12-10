@@ -37,6 +37,7 @@
 #include "macdockiconhandler.h"
 #endif
 
+#include <QDebug>
 #include <QMenu>
 #include <QMenuBar>
 #include <QIcon>

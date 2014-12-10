@@ -27,6 +27,8 @@
 #include <QLabel>
 #include <QDateTimeEdit>
 #include <QStyledItemDelegate>
+#include <QDesktopServices>
+#include <QUrl>
 
 TransactionView::TransactionView(QWidget *parent) :
     QWidget(parent), model(0), transactionProxyModel(0),
@@ -403,8 +405,9 @@ void TransactionView::openThirdPartyTxUrl(QString url)
     if(!transactionView->selectionModel())
        return;
     QModelIndexList selection = transactionView->selectionModel()->selectedRows(0);
+
     if(!selection.isEmpty())
-        QDesktopServices::openUrl(QUrl::fromUserInput(url.replace("%s", selection.at(0).data(TransactionTableModel::TxHashRole).toString())));
+        QDesktopServices::openUrl(QUrl::fromUserInput(url.replace("%s", selection.at(0).data(TransactionTableModel::TxIDRole).toString())));
 }
 
 QWidget *TransactionView::createDateRangeWidget()

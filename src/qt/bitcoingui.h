@@ -55,7 +55,10 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event);
     void dropEvent(QDropEvent *event);
 
+
 private:
+    bool eventFilter(QObject *object, QEvent *event);
+
     ClientModel *clientModel;
     WalletModel *walletModel;
 

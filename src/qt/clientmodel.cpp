@@ -84,11 +84,11 @@ void ClientModel::updateTimer()
     int newNumBlocks = getNumBlocks();
 
     // check for changed number of blocks we have, number of blocks peers claim to have, reindexing state and importing state
-    if (cachedNumBlocks != newNumBlocks || cachedNumBlocksOfPeers != newNumBlocksOfPeers ||
+    if (cachedNumBlocks != newNumBlocks || /* // TRYPHE FIXME cachedNumBlocksOfPeers != newNumBlocksOfPeers ||*/
         cachedReindexing != fReindex || cachedImporting != fImporting)
     {
         cachedNumBlocks = newNumBlocks;
-        cachedNumBlocksOfPeers = newNumBlocksOfPeers;
+        // TRYPHE FIXME cachedNumBlocksOfPeers = newNumBlocksOfPeers;
         cachedReindexing = fReindex;
         cachedImporting = fImporting;
 
