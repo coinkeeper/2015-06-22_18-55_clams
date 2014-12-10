@@ -248,6 +248,7 @@ public:
     std::vector<CTxOut> vout;
     unsigned int nLockTime;
     std::string strCLAMSpeech;
+    mutable uint256 hash;
 
     // Denial-of-service detection:
     mutable int nDoS;
@@ -282,6 +283,7 @@ public:
         nLockTime = 0;
         nDoS = 0;  // Denial-of-service prevention
         strCLAMSpeech.clear();
+        hash = 0;
     }
 
     bool IsNull() const
