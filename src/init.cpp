@@ -512,6 +512,19 @@ bool AppInit2(boost::thread_group& threadGroup)
             }
         }
 
+        if (GetBoolArg("-reindex", false) )
+        {
+            boost::filesystem::path pathDatabase = GetDataDir() / "database";
+            boost::filesystem::remove(pathDatabase);
+
+            // try again
+            if (!bitdb.Open(GetDataDir())) {
+                // if it still fails, it probably means we can't even create the database env
+                string msg = strprintf(_("Error initializing wallet database environment %s!"), strDataDir);
+                return InitError(msg);
+            }
+        }
+
         if (GetBoolArg("-salvagewallet", false))
         {
             // Recover readable keypairs:
@@ -666,7 +679,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     if (GetBoolArg("-reindex", false)) 
     {
-	if (!LoadBlockIndex(true, true))
+	   if (!LoadBlockIndex(true, true))
             return InitError(_("Reindex: Error loading blkindex.dat"));
     } else { 		
     	if (!LoadBlockIndex())
