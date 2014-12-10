@@ -48,7 +48,7 @@ CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 uint nTargetSpacing = 1 * 5; // 5 Seconds, this was only used to the inital PoW and distrubution
 uint nTargetStakeSpacing = 1 * 60; // 60 seconds
 uint nStakeMinAge = 4 * 60 * 60; // 4 hours
-int64 nStakeMaxAge = -1; // unlimited
+int64_t nStakeMaxAge = -1; // unlimited
 uint nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
  
 const int DISTRIBUTION_END = 10000;
@@ -1472,7 +1472,9 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs, map<uint256, CTx
     // fBlock is true when this is called from AcceptBlock when a new best-block is added to the blockchain
     // fMiner is true when called from the internal bitcoin miner
     // ... both are false when called from CTransaction::AcceptToMemoryPool
-    bool fScriptChecks = !(fBlock && Checkpoints::GetTotalBlocksEstimate() >= nBestHeight);
+    
+    //Meant for when pay to script is included
+    //bool fScriptChecks = !(fBlock && Checkpoints::GetTotalBlocksEstimate() >= nBestHeight);
 
     if (!IsCoinBase())
     {
@@ -2673,7 +2675,7 @@ FILE* AppendBlockFile(uint& nFileRet)
     }
 }
 
-bool LoadBlockIndex(bool fAllowNew)
+bool LoadBlockIndex(bool fAllowNew, bool fReindex)
 {
     LOCK(cs_main);
 
@@ -2682,11 +2684,13 @@ bool LoadBlockIndex(bool fAllowNew)
         nStakeMinAge = 1 * 60 * 60; // test net min age is 1 hour
         nCoinbaseMaturity = 10; // test maturity is 10 blocks
     }
+   
+    const char* selector = fReindex ? "cri+" : "cr+";
 
     //
     // Load block index
     //
-    CTxDB txdb("cr+");
+    CTxDB txdb(selector);
     if (!txdb.LoadBlockIndex())
         return false;
 
@@ -3155,7 +3159,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             return true;
         }
 
-        }
         // Be shy and don't send version until we hear
         if (pfrom->fInbound)
             pfrom->PushVersion();

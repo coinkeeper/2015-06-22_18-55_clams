@@ -12,7 +12,7 @@
 #include "util.h"
 #include "ui_interface.h"
 #include "checkpoints.h"
-#include "clamspeech.h"
+#include "util.h"
 #ifdef ENABLE_WALLET
 #include "wallet.h"
 #include "walletdb.h"
@@ -248,6 +248,7 @@ std::string HelpMessage()
     strUsage += "  -upgradewallet         " + _("Upgrade wallet to latest format") + "\n";
     strUsage += "  -keypool=<n>           " + _("Set key pool size to <n> (default: 100)") + "\n";
     strUsage += "  -rescan                " + _("Rescan the block chain for missing wallet transactions") + "\n";
+    strUsage += "  -reindex               " + _("Forces a reindex of the block DB and tx DB") + "\n";
     strUsage += "  -salvagewallet         " + _("Attempt to recover private keys from a corrupt wallet.dat") + "\n";
     strUsage += "  -checkblocks=<n>       " + _("How many blocks to check at startup (default: 500, 0 = all)") + "\n";
     strUsage += "  -checklevel=<n>        " + _("How thorough the block verification is (0-6, default: 1)") + "\n";
@@ -534,6 +535,9 @@ bool AppInit2(boost::thread_group& threadGroup)
         }
     } // (!fDisableWallet)
 #endif // ENABLE_WALLET
+
+    if(!LoadClamSpeech())
+    	return InitError(_("Failed to load CLAMspeech"));
     // ********************************************************* Step 6: network initialization
 
     RegisterNodeSignals(GetNodeSignals());
@@ -659,8 +663,15 @@ bool AppInit2(boost::thread_group& threadGroup)
     uiInterface.InitMessage(_("Loading block index..."));
 
     nStart = GetTimeMillis();
-    if (!LoadBlockIndex())
-        return InitError(_("Error loading blkindex.dat"));
+
+    if (GetBoolArg("-reindex", false)) 
+    {
+	if (!LoadBlockIndex(true, true))
+            return InitError(_("Reindex: Error loading blkindex.dat"));
+    } else { 		
+    	if (!LoadBlockIndex())
+            return InitError(_("Error loading blkindex.dat"));
+    }
 
 
     // as LoadBlockIndex can take several minutes, it's possible the user

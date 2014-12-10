@@ -78,6 +78,7 @@ CTxDB::CTxDB(const char* pszMode)
     }
 
     bool fCreate = strchr(pszMode, 'c');
+    bool fReindex = strchr(pszMode, 'i');
 
     options = GetOptions();
     options.create_if_missing = fCreate;
@@ -85,6 +86,25 @@ CTxDB::CTxDB(const char* pszMode)
 
     init_blockindex(options); // Init directory
     pdb = txdb;
+
+    if(fReindex)
+    {
+	LogPrintf("Reindex: removing previous txleveldb directory");
+            
+	// Leveldb instance destruction
+        delete txdb;
+        txdb = pdb = NULL;
+        delete activeBatch;
+        activeBatch = NULL;
+            
+	init_blockindex(options, true); // Remove directory and create new database
+    	pdb = txdb;
+
+        bool fTmp = fReadOnly;
+        fReadOnly = false;
+        WriteVersion(DATABASE_VERSION); // Save transaction index version
+        fReadOnly = fTmp;
+    }
 
     if (Exists(string("version")))
     {
