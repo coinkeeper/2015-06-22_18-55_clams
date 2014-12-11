@@ -44,6 +44,7 @@ unsigned int nDerivationMethodIndex;
 unsigned int nMinerSleep;
 bool fUseFastIndex;
 enum Checkpoints::CPMode CheckpointsMode;
+vector<CKeyID> vChangeAddresses;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -239,6 +240,7 @@ std::string HelpMessage()
     strUsage += "  -rpcthreads=<n>        " + _("Set the number of threads to service RPC calls (default: 4)") + "\n";
     strUsage += "  -blocknotify=<cmd>     " + _("Execute command when the best block changes (%s in cmd is replaced by block hash)") + "\n";
     strUsage += "  -walletnotify=<cmd>    " + _("Execute command when a wallet transaction changes (%s in cmd is replaced by TxID)") + "\n";
+    strUsage += "  -change=<addr>         " + _("Address to send change to") + "\n";
     strUsage += "  -confchange            " + _("Require a confirmations for change (default: 0)") + "\n";
     strUsage += "  -minimizecoinage       " + _("Minimize weight consumption (experimental) (default: 0)") + "\n";
     strUsage += "  -alertnotify=<cmd>     " + _("Execute command when a relevant alert is received (%s in cmd is replaced by message)") + "\n";
@@ -429,6 +431,20 @@ bool AppInit2(boost::thread_group& threadGroup)
     }
 #endif
 
+    if (mapArgs.count("-change"))
+    {
+        BOOST_FOREACH(std::string strChange, mapMultiArgs["-change"]) {
+            CBitcoinAddress address(strChange);
+            CKeyID keyID;
+            
+            if (!address.GetKeyID(keyID)) {
+                return InitError(strprintf(_("Bad -change address: '%s'"), strChange));
+            }
+
+            vChangeAddresses.push_back(keyID);
+        }
+    }
+    
     fConfChange = GetBoolArg("-confchange", false);
     fMinimizeCoinAge = GetBoolArg("-minimizecoinage", false);
 
