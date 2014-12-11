@@ -265,7 +265,7 @@ public:
     void SetNull()
     {
         //nVersion = CTransaction::CURRENT_VERSION;
-	nVersion = IsProtocolV2(nBestHeight) ? CTransaction::CURRENT_VERSION : LEGACY_VERSION_1;
+        nVersion = IsProtocolV2(nBestHeight) ? CTransaction::CURRENT_VERSION : LEGACY_VERSION_1;
         nTime = GetAdjustedTime();
         vin.clear();
         vout.clear();

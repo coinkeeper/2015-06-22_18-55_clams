@@ -33,7 +33,8 @@ public:
         Language,          // QString
         CoinControlFeatures, // bool
         MinimizeCoinAge,   // bool
-        UseClamTheme,     // bool
+        UseClamTheme,      // bool
+        UseClamSpeech,     // bool
         OptionIDRowCount,
     };
 

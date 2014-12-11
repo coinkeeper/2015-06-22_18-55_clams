@@ -45,9 +45,13 @@ private:
     Ui::SendCoinsDialog *ui;
     WalletModel *model;
     bool fNewRecipientAllowed;
+    qint32 clamSpeechQuoteCount;
+    //remove this
+    QStringList clamSpeech;
 
 private slots:
     void on_sendButton_clicked();
+    void clamSpeechIndexChanged(const int &index);
     void removeEntry(SendCoinsEntry* entry);
     void updateDisplayUnit();
     void coinControlFeatureChanged(bool);
