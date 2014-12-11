@@ -492,6 +492,13 @@ bool AppInit2(boost::thread_group& threadGroup)
     if (!fDisableWallet) {
         uiInterface.InitMessage(_("Verifying database integrity..."));
 
+        if (GetBoolArg("-reindex", false) )
+        {
+            LogPrintf("Reindex remove database directory\n");
+            boost::filesystem::path pathDatabase = GetDataDir() / "database";
+            boost::filesystem::remove_all(pathDatabase);
+        }
+
         if (!bitdb.Open(GetDataDir()))
         {
             // try moving the database env out of the way
@@ -512,18 +519,6 @@ bool AppInit2(boost::thread_group& threadGroup)
             }
         }
 
-        if (GetBoolArg("-reindex", false) )
-        {
-            boost::filesystem::path pathDatabase = GetDataDir() / "database";
-            boost::filesystem::remove(pathDatabase);
-
-            // try again
-            if (!bitdb.Open(GetDataDir())) {
-                // if it still fails, it probably means we can't even create the database env
-                string msg = strprintf(_("Error initializing wallet database environment %s!"), strDataDir);
-                return InitError(msg);
-            }
-        }
 
         if (GetBoolArg("-salvagewallet", false))
         {
