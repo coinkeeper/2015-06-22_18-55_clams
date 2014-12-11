@@ -33,6 +33,7 @@ extern int64_t nSplitSize;
 static unsigned int GetStakeSplitAge() { return 1 * 24 * 60 * 60; }
 
 static int64_t GetStakeCombineThreshold() { return 1 * COIN; }
+extern set<CBitcoinAddress> setSpendLastAddresses;
 
 int64_t gcd(int64_t n,int64_t m) { return m == 0 ? n : gcd(m, n % m); }
 static inline uint64_t CoinWeightCost(const COutput &out)
@@ -1599,6 +1600,29 @@ bool CWallet::SelectCoins(int64_t nTargetValue, uint nSpendTime, set<pair<const 
     }
 
     boost::function<bool (const CWallet*, int64_t, uint, int, int, std::vector<COutput>, std::set<std::pair<const CWalletTx*,uint> >&, int64_t&)> f = fMinimizeCoinAge ? &CWallet::SelectCoinsMinConfByCoinAge : &CWallet::SelectCoinsMinConf;
+
+    if (setSpendLastAddresses.size()) {
+        int64_t nMiscValue = 0;
+        vector<COutput> vMiscCoins;
+        BOOST_FOREACH(COutput& output, vCoins) {
+            CTxDestination address;
+            const CTxOut &txout = output.tx->vout[output.i];
+            if (!ExtractDestination(txout.scriptPubKey, address) || !setSpendLastAddresses.count(address)) {
+                nMiscValue += txout.nValue;
+                vMiscCoins.push_back(output);
+            }
+        }
+
+        LogPrintf("we have %d (of %d) non-spendlast outputs valued as %s\n", int(vMiscCoins.size()), int(vCoins.size()), FormatMoney(nMiscValue));
+
+        if (nMiscValue >= nTargetValue &&
+            (f(this, nTargetValue, nSpendTime, 1, 10, vMiscCoins, setCoinsRet, nValueRet) ||
+             f(this, nTargetValue, nSpendTime, 1, 1, vMiscCoins, setCoinsRet, nValueRet) ||
+             f(this, nTargetValue, nSpendTime, 0, 1, vMiscCoins, setCoinsRet, nValueRet))) {
+            LogPrintf("we can make the transaction without spending any -spendlast coins\n");
+            return true;
+        }
+    }
 
     return (f(this, nTargetValue, nSpendTime, 1, 10, vCoins, setCoinsRet, nValueRet) ||
             f(this, nTargetValue, nSpendTime, 1, 1, vCoins, setCoinsRet, nValueRet) ||
