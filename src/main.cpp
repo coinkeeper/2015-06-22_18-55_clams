@@ -48,7 +48,7 @@ CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 16);
 uint nTargetSpacing = 1 * 5; // 5 Seconds, this was only used to the inital PoW and distrubution
 uint nTargetStakeSpacing = 1 * 60; // 60 seconds
 uint nStakeMinAge = 4 * 60 * 60; // 4 hours
-int64_t nStakeMaxAge = -1; // unlimited
+uint nStakeMaxAge = -1; // unlimited
 uint nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
  
 const int DISTRIBUTION_END = 10000;
