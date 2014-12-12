@@ -254,9 +254,15 @@ void SendCoinsDialog::clamSpeechIndexChanged(const int &index)
     // Save to QSettings
     QSettings settings;
     settings.setValue( "nClamSpeechIndex", nClamSpeechIndex );
+
+    /** Disabled because functionality to choose a custom quote for a single tx
+        is more desirable
+
     // Turn random quotes off
     if ( fUseClamSpeechRandom )
         settings.setValue( "fUseClamSpeechRandom", false );
+
+    */
 }
 
 void SendCoinsDialog::clear()
