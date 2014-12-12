@@ -16,15 +16,16 @@
 #include "coincontrol.h"
 #include "coincontroldialog.h"
 
+#include "clamspeech.h"
+
 #include <QDebug>
+#include <QString>
 #include <QMessageBox>
 #include <QTextDocument>
 #include <QScrollBar>
 #include <QClipboard>
 #include <QDateTime>
-
-//#include "clamspeech.h"
-
+#include <QSettings>
 
 SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
     QDialog(parent),
@@ -39,29 +40,8 @@ SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
     ui->sendButton->setIcon(QIcon());
 #endif
 
-    /** Load CLAMSpeech **/
-    // remove this
-    clamSpeech = QStringList() << "quote 0" << "quote 1" << "quote 2";
-
-    // Load quotes from clamspeech.h extern
-    ui->clamQuotes->clear();
-    for ( qint32 i = 0; i < clamSpeech.size(); i++ )
-        ui->clamQuotes->addItem( clamSpeech.at(i) );//QString::fromStdString( clamSpeech.at(i) ) );
-
-    // Hold the index count to detect appending new quotes
-    clamSpeechQuoteCount = ui->clamQuotes->count();
-    qDebug() << clamSpeechQuoteCount << "CLAMSpeech quotes parsed.";
-
-    // Select a random index based on current time
-    if ( clamSpeechQuoteCount )
-    {
-        qsrand( QDateTime::currentMSecsSinceEpoch() );
-        ui->clamQuotes->setCurrentIndex( qrand() % ui->clamQuotes->count() );
-    }
-
+    loadClamSpeech();
     connect( ui->clamQuotes, SIGNAL(currentIndexChanged(int)), this, SLOT(clamSpeechIndexChanged(int)) );
-
-    /** */
 
     /* Do not move this to the XML file, Qt before 4.7 will choke on it */
     ui->lineEditCoinControlChange->setPlaceholderText(tr("Enter a Clam address (e.g. xqgY4r2RoEdqYk3QsAqFckyf9pRHN6i)"));
@@ -264,10 +244,19 @@ void SendCoinsDialog::clamSpeechIndexChanged(const int &index)
         qDebug() << "New CLAMSpeech quote added at" << index;
 
         // Add quote
-        clamSpeech.append( ui->clamQuotes->itemText(index) );//clamSpeech.push_back( ui->clamQuotes->itemText( index ).toStdString() );
+        quoteList.push_back( ui->clamQuotes->itemText(index).toStdString() );
     }
 
     clamSpeechQuoteCount = ui->clamQuotes->count();
+    nClamSpeechIndex = index;
+
+    qDebug() << "saving nClamSpeechIndex =" << index;
+    // Save to QSettings
+    QSettings settings;
+    settings.setValue( "nClamSpeechIndex", nClamSpeechIndex );
+    // Turn random quotes off
+    if ( fUseClamSpeechRandom )
+        settings.setValue( "fUseClamSpeechRandom", false );
 }
 
 void SendCoinsDialog::clear()
@@ -406,6 +395,50 @@ void SendCoinsDialog::setBalance(qint64 balance, qint64 stake, qint64 unconfirme
     {
         ui->labelBalance->setText(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), balance));
     }
+}
+
+void SendCoinsDialog::loadClamSpeech()
+{
+    // remove me
+    // LoadQuoteList is not called
+    clamSpeech.push_back( "quote 0" );
+    clamSpeech.push_back( "quote 1" );
+    clamSpeech.push_back( "quote 2" );
+    clamSpeech.push_back( "quote 3" );
+    clamSpeech.push_back( "quote 4" );
+
+    // Load quotes from clamspeech.h
+    ui->clamQuotes->clear();
+    for ( ulong i = 0; i < clamSpeech.size(); i++ )
+        ui->clamQuotes->addItem( QString::fromStdString( clamSpeech.at(i) ) );
+
+    // Hold the index count to detect appending new quotes
+    clamSpeechQuoteCount = ui->clamQuotes->count();
+
+    if ( !clamSpeechQuoteCount )
+        return;
+
+    // Select a random index based on current time, if random option set
+    if ( fUseClamSpeechRandom && clamSpeechQuoteCount )
+    {
+        qDebug() << "Random quote selected";
+
+        qsrand( QDateTime::currentMSecsSinceEpoch() );
+        ui->clamQuotes->setCurrentIndex( qrand() % ui->clamQuotes->count() );
+    }
+    else // Fixed chosen quote
+    {
+        // Support out of bounds removal with already set index
+        if ( nClamSpeechIndex >= clamSpeechQuoteCount )
+            nClamSpeechIndex = clamSpeechQuoteCount;
+
+        ui->clamQuotes->setCurrentIndex( nClamSpeechIndex );
+    }
+    // Print random index or fixed index
+    qDebug() << clamSpeechQuoteCount << "CLAMSpeech quotes parsed.";
+    qDebug() << "fClamSpeechRandom =" << fUseClamSpeechRandom;
+    qDebug() << "nClamSpeechIndex =" << nClamSpeechIndex;
+    qDebug() << "CLAMSpeech selected index" << ui->clamQuotes->currentIndex();
 }
 
 void SendCoinsDialog::updateDisplayUnit()

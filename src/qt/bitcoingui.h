@@ -95,9 +95,6 @@ private:
     QAction *addressBookAction;
     QAction *optionsAction;
     QAction *rpcConsoleAction;
-    //QAction *netinfoAction;
-    // TODO testing
-    QAction *styleButton;
 
     // other menu actions
     QMenu *fileMenu;

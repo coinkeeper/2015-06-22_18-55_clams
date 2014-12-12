@@ -251,11 +251,7 @@ void BitcoinGUI::createActions()
     rpcConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
     rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
 
-//    netinfoAction = new QAction(QIcon(":/icons/tx_inout"), tr("&Network Stats"), tabGroup);
-//    netinfoAction->setToolTip(tr("Network statistics and information"));
-//    netinfoAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
-
-    styleButton = new QAction(QIcon(":/icons/tx_inout"), tr("&Update Style"), tabGroup);
+    //styleButton = new QAction(QIcon(":/icons/tx_inout"), tr("&Update Style"), tabGroup);
 
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
@@ -308,7 +304,7 @@ void BitcoinGUI::createActions()
     connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
 
     // TODO testing
-    connect(styleButton, SIGNAL(triggered()), this, SLOT(updateStyleSlot()));
+    //connect(styleButton, SIGNAL(triggered()), this, SLOT(updateStyleSlot()));
 }
 
 void BitcoinGUI::createMenuBar()
@@ -351,7 +347,6 @@ void BitcoinGUI::createMenuBar()
 
     connect( fileButton, SIGNAL(released()), this, SLOT(showFileMenu()) );
     connect( miscButton, SIGNAL(released()), this, SLOT(showMiscMenu()) );
-
 }
 
 static QWidget* makeToolBarSpacer()
@@ -385,12 +380,11 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(a);
     }
 
-    toolbar->addWidget(makeToolBarSpacer());
-
     toolbar->setOrientation(Qt::Vertical);
     toolbar->setFloatable(false); // Disable dockable
     toolbar->setMovable(false); // Disable drag/drop handle
-    //toolbar->resize(150);
+
+    toolbar->addWidget(makeToolBarSpacer());
 
     addToolBar(Qt::LeftToolBarArea, toolbar);
 

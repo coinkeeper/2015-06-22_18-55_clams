@@ -1132,9 +1132,8 @@ boost::filesystem::path GetQuoteFile()
 
 bool LoadClamSpeech()
 {
-
     if (clamSpeechList.empty())
-	CSLoad();
+        CSLoad();
 
     // If file doesn't exist, create it using the clamSpeech quote list
     if (!boost::filesystem::exists(GetClamSpeechFile())) {

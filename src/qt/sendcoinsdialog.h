@@ -42,12 +42,12 @@ public slots:
     void setBalance(qint64 balance, qint64 stake, qint64 unconfirmedBalance, qint64 immatureBalance);
 
 private:
+    void loadClamSpeech();
+
     Ui::SendCoinsDialog *ui;
     WalletModel *model;
     bool fNewRecipientAllowed;
-    qint32 clamSpeechQuoteCount;
-    //remove this
-    QStringList clamSpeech;
+    int clamSpeechQuoteCount;
 
 private slots:
     void on_sendButton_clicked();

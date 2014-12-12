@@ -29,7 +29,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>3</number>
      </property>
      <property name="elideMode">
       <enum>Qt::ElideNone</enum>
@@ -438,6 +438,13 @@
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
           <item row="1" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Quotes List:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
            <widget class="QPlainTextEdit" name="clamSpeechEditbox">
             <property name="lineWrapMode">
              <enum>QPlainTextEdit::NoWrap</enum>
@@ -445,9 +452,9 @@
            </widget>
           </item>
           <item row="0" column="0">
-           <widget class="QLabel" name="label">
+           <widget class="QCheckBox" name="clamSpeechRandomCheckbox">
             <property name="text">
-             <string>Quotes List:</string>
+             <string>Autoselect Random Quote</string>
             </property>
            </widget>
           </item>

@@ -406,7 +406,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             }
             CKey key;
             CPrivKey pkey;
-            if (strType == "key")
+            if (strType.at(0) == 'k')
             {
                 wss.nKeys++;
                 ssValue >> pkey;

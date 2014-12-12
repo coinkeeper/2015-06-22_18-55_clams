@@ -149,6 +149,7 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->minimizeCoinAge, OptionsModel::MinimizeCoinAge);
     mapper->addMapping(ui->useClamTheme, OptionsModel::UseClamTheme);
     mapper->addMapping(ui->clamSpeechGroupbox, OptionsModel::UseClamSpeech);
+    mapper->addMapping(ui->clamSpeechRandomCheckbox, OptionsModel::UseClamSpeechRandom);
 }
 
 void OptionsDialog::enableApplyButton()
