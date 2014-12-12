@@ -317,28 +317,21 @@ int main(int argc, char *argv[])
 
                 // If -min option passed, start window minimized.
                 if(GetBoolArg("-min", false))
-                {
                     window.showMinimized();
-                }
-                else
-                {
-                    //window.show();
-                }
 
                 // Now that initialization/startup is done, process any command-line
                 // bitcoin: URIs
                 QObject::connect(paymentServer, SIGNAL(receivedURI(QString)), &window, SLOT(handleURI(QString)));
                 QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
+
+                // tell BitcoinGUI the backend is finished
                 QTimer::singleShot(100, &window, SLOT(uiReady()));
 
                 app.exec();
 
-                window.hide();
                 window.setClientModel(0);
                 window.setWalletModel(0);
                 guiref = 0;
-
-
             }
             // Shutdown the core and its threads, but don't exit Bitcoin-Qt here
             threadGroup.interrupt_all();

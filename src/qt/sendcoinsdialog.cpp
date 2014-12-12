@@ -258,7 +258,6 @@ void SendCoinsDialog::clamSpeechIndexChanged(const int &index)
     // Turn random quotes off
     if ( fUseClamSpeechRandom )
         settings.setValue( "fUseClamSpeechRandom", false );
-
     */
 }
 
@@ -428,7 +427,7 @@ void SendCoinsDialog::loadClamSpeech()
     {
         // Support out of bounds removal with already set index
         if ( nClamSpeechIndex >= clamSpeechQuoteCount )
-            nClamSpeechIndex = clamSpeechQuoteCount;
+            nClamSpeechIndex = clamSpeechQuoteCount -1;
 
         ui->clamQuotes->setCurrentIndex( nClamSpeechIndex );
     }
@@ -445,7 +444,7 @@ void SendCoinsDialog::loadClamSpeech()
 
 void SendCoinsDialog::uiReady()
 {
-    qDebug() << "uiReady()";
+    qDebug() << "SendCoinsDialog::uiReady()";
     this->loadClamSpeech();
 }
 

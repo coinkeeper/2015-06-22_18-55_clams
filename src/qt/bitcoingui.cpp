@@ -84,6 +84,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     prevBlocks(0),
     nWeight(0)
 {
+    setVisible( false );
+
     updateStyle();
 
     resize(850+95, 550);
@@ -830,6 +832,9 @@ void BitcoinGUI::gotoOptionsPage()
         optionsPage = new OptionsDialog(this);
         optionsPage->setModel(clientModel->getOptionsModel());
         centralStackedWidget->addWidget(optionsPage);
+
+        // sync clamspeech editor with the selector in SendCoinsDialog
+        connect( optionsPage, SIGNAL(onClamSpeechUpdated()), this, SLOT(uiReady()) );
     }
 
     optionsAction->setChecked(true);
@@ -920,7 +925,13 @@ void BitcoinGUI::handleURI(QString strURI)
 void BitcoinGUI::uiReady()
 {
     qDebug() << "BitcoinGUI::uiReady()";
+
     if ( sendCoinsPage )
+        this->sendCoinsPage->uiReady();
+
+    // Only update the page if it's created
+    // OptionsDialog is created on the fly and does NOT run this on first init
+    if ( optionsPage )
         this->sendCoinsPage->uiReady();
 }
 

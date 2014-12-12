@@ -24,9 +24,9 @@ public:
     void loadClamQuotes();
     void saveClamQuotes();
 
-//public slots:
-//    // UI Ready notification
-//    void uiReady();
+signals:
+    void proxyIpValid(QValidatedLineEdit *object, bool fValid);
+    void onClamSpeechUpdated();
 
 protected:
     bool eventFilter(QObject *object, QEvent *event);
@@ -49,9 +49,6 @@ private slots:
     void showRestartWarning_Lang();
     void updateDisplayUnit();
     void handleProxyIpValid(QValidatedLineEdit *object, bool fState);
-
-signals:
-    void proxyIpValid(QValidatedLineEdit *object, bool fValid);
 
 private:
     Ui::OptionsDialog *ui;

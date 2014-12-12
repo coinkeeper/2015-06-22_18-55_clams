@@ -183,7 +183,9 @@ void OptionsDialog::saveClamQuotes()
             clamSpeech.push_back( strLine.toStdString() );
 
     // TODO insert save call here
-    // TODO make proper update signals to SendCoinsDialog
+
+    // send signal to BitcoinGUI->SendCoinsDialog
+    emit onClamSpeechUpdated();
 }
 
 void OptionsDialog::enableApplyButton()

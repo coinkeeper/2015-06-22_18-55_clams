@@ -33,6 +33,9 @@ public:
     void pasteEntry(const SendCoinsRecipient &rv);
     bool handleURI(const QString &uri);
 
+signals:
+    void onClamSpeechUpdated();
+
 public slots:
     // UI Ready notification
     void uiReady();
