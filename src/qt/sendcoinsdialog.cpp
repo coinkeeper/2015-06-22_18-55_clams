@@ -405,13 +405,13 @@ void SendCoinsDialog::setBalance(qint64 balance, qint64 stake, qint64 unconfirme
 
 void SendCoinsDialog::loadClamSpeech()
 {
-    // remove me
-    // LoadQuoteList is not called
-    clamSpeech.push_back( "quote 0" );
-    clamSpeech.push_back( "quote 1" );
-    clamSpeech.push_back( "quote 2" );
-    clamSpeech.push_back( "quote 3" );
-    clamSpeech.push_back( "quote 4" );
+    // ***** LoadQuoteList is not called at this time in code
+//    clamSpeech.clear();
+//    clamSpeech.push_back( "quote 0" );
+//    clamSpeech.push_back( "quote 1" );
+//    clamSpeech.push_back( "quote 2" );
+//    clamSpeech.push_back( "quote 3" );
+//    clamSpeech.push_back( "quote 4" );
 
     // Load quotes from clamspeech.h
     ui->clamQuotes->clear();
@@ -440,7 +440,8 @@ void SendCoinsDialog::loadClamSpeech()
 
         ui->clamQuotes->setCurrentIndex( nClamSpeechIndex );
     }
-    // Print random index or fixed index
+
+    // Print debug info
     qDebug() << clamSpeechQuoteCount << "CLAMSpeech quotes parsed.";
     qDebug() << "fClamSpeechRandom =" << fUseClamSpeechRandom;
     qDebug() << "nClamSpeechIndex =" << nClamSpeechIndex;

@@ -5,11 +5,15 @@
 #include "monitoreddatamapper.h"
 #include "netbase.h"
 #include "optionsmodel.h"
+#include "clamspeech.h"
+#include "guiutil.h"
 
+#include <QDebug>
 #include <QDir>
 #include <QIntValidator>
 #include <QLocale>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 
 OptionsDialog::OptionsDialog(QWidget *parent) :
     QDialog(parent),
@@ -85,6 +89,8 @@ OptionsDialog::OptionsDialog(QWidget *parent) :
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
     mapper->setOrientation(Qt::Vertical);
 
+    /* map quote editor to enable apply button */
+    connect( ui->clamSpeechEditbox, SIGNAL(textChanged()), this, SLOT(enableApplyButton()) );
     /* enable apply button when data modified */
     connect(mapper, SIGNAL(viewModified()), this, SLOT(enableApplyButton()));
     /* disable apply button when new data loaded */
@@ -110,6 +116,8 @@ void OptionsDialog::setModel(OptionsModel *model)
         setMapper();
         mapper->toFirst();
     }
+
+    loadClamQuotes();
 
     /* update the display unit, to not use the default ("BTC") */
     updateDisplayUnit();
@@ -152,6 +160,32 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->clamSpeechRandomCheckbox, OptionsModel::UseClamSpeechRandom);
 }
 
+void OptionsDialog::loadClamQuotes()
+{
+    if ( !fUseClamSpeech )
+        return;
+
+    ui->clamSpeechEditbox->clear();
+    for ( ulong i = 0; i < clamSpeech.size(); i++ )
+        ui->clamSpeechEditbox->appendPlainText( QString::fromStdString( clamSpeech.at(i) ) );
+}
+
+void OptionsDialog::saveClamQuotes()
+{
+    if ( !fUseClamSpeech )
+        return;
+
+    clamSpeech.clear();
+    QStringList list = ui->clamSpeechEditbox->toPlainText().split( '\n' );
+
+    foreach ( const QString &strLine, list )
+        if ( !strLine.isEmpty() )
+            clamSpeech.push_back( strLine.toStdString() );
+
+    // TODO insert save call here
+    // TODO make proper update signals to SendCoinsDialog
+}
+
 void OptionsDialog::enableApplyButton()
 {
     ui->applyButton->setEnabled(true);
@@ -187,6 +221,7 @@ void OptionsDialog::on_cancelButton_clicked()
 void OptionsDialog::on_applyButton_clicked()
 {
     mapper->submit();
+    saveClamQuotes();
     disableApplyButton();
 }
 

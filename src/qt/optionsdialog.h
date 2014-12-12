@@ -21,6 +21,8 @@ public:
 
     void setModel(OptionsModel *model);
     void setMapper();
+    void loadClamQuotes();
+    void saveClamQuotes();
 
 protected:
     bool eventFilter(QObject *object, QEvent *event);

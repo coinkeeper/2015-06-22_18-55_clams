@@ -10,4 +10,8 @@ void CSLoad() {
 	clamSpeechList.push_back("Quote 1");
 	clamSpeechList.push_back("Quote 2");
 	clamSpeechList.push_back("Quote 3");
+
+    clamSpeech.push_back("Quote 1");
+    clamSpeech.push_back("Quote 2");
+    clamSpeech.push_back("Quote 3");
 }
