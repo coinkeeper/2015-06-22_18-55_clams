@@ -34,6 +34,9 @@ public:
     bool handleURI(const QString &uri);
 
 public slots:
+    // UI Ready notification
+    void uiReady();
+
     void clear();
     void reject();
     void accept();

@@ -1130,6 +1130,8 @@ boost::filesystem::path GetQuoteFile()
     return pathQuoteFile;
 }
 
+#include <QDebug>
+
 bool LoadClamSpeech()
 {
     if (clamSpeechList.empty())
@@ -1157,6 +1159,7 @@ bool LoadClamSpeech()
     string line;
     while (getline(speechfile, line, '\n'))
     {
+        qDebug() << QString::fromStdString(line);
         clamSpeech.push_back (line);
     }
     

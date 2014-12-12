@@ -40,9 +40,6 @@ SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
     ui->sendButton->setIcon(QIcon());
 #endif
 
-    loadClamSpeech();
-    connect( ui->clamQuotes, SIGNAL(currentIndexChanged(int)), this, SLOT(clamSpeechIndexChanged(int)) );
-
     /* Do not move this to the XML file, Qt before 4.7 will choke on it */
     ui->lineEditCoinControlChange->setPlaceholderText(tr("Enter a Clam address (e.g. xqgY4r2RoEdqYk3QsAqFckyf9pRHN6i)"));
 
@@ -405,13 +402,8 @@ void SendCoinsDialog::setBalance(qint64 balance, qint64 stake, qint64 unconfirme
 
 void SendCoinsDialog::loadClamSpeech()
 {
-    // ***** LoadQuoteList is not called at this time in code
-//    clamSpeech.clear();
-//    clamSpeech.push_back( "quote 0" );
-//    clamSpeech.push_back( "quote 1" );
-//    clamSpeech.push_back( "quote 2" );
-//    clamSpeech.push_back( "quote 3" );
-//    clamSpeech.push_back( "quote 4" );
+    // disconnect widget change signal to stop clashing
+    disconnect( ui->clamQuotes, SIGNAL(currentIndexChanged(int)), this, SLOT(clamSpeechIndexChanged(int)) );
 
     // Load quotes from clamspeech.h
     ui->clamQuotes->clear();
@@ -446,6 +438,15 @@ void SendCoinsDialog::loadClamSpeech()
     qDebug() << "fClamSpeechRandom =" << fUseClamSpeechRandom;
     qDebug() << "nClamSpeechIndex =" << nClamSpeechIndex;
     qDebug() << "CLAMSpeech selected index" << ui->clamQuotes->currentIndex();
+
+    // setup clamspeech widget change signal
+    connect( ui->clamQuotes, SIGNAL(currentIndexChanged(int)), this, SLOT(clamSpeechIndexChanged(int)) );
+}
+
+void SendCoinsDialog::uiReady()
+{
+    qDebug() << "uiReady()";
+    this->loadClamSpeech();
 }
 
 void SendCoinsDialog::updateDisplayUnit()

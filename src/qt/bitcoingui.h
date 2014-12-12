@@ -135,6 +135,9 @@ private:
     void writeDefultStyleSheet(const QString &qssPath);
 
 public slots:
+    // UI Ready notification
+    void uiReady();
+
     /** Set number of connections shown in the UI */
     void setNumConnections(int count);
     /** Set number of blocks shown in the UI */

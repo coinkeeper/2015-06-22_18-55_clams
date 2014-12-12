@@ -917,6 +917,13 @@ void BitcoinGUI::handleURI(QString strURI)
         notificator->notify(Notificator::Warning, tr("URI handling"), tr("URI can not be parsed! This can be caused by an invalid Clam address or malformed URI parameters."));
 }
 
+void BitcoinGUI::uiReady()
+{
+    qDebug() << "BitcoinGUI::uiReady()";
+    if ( sendCoinsPage )
+        this->sendCoinsPage->uiReady();
+}
+
 void BitcoinGUI::setEncryptionStatus(int status)
 {
     switch(status)

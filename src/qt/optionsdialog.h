@@ -24,6 +24,10 @@ public:
     void loadClamQuotes();
     void saveClamQuotes();
 
+//public slots:
+//    // UI Ready notification
+//    void uiReady();
+
 protected:
     bool eventFilter(QObject *object, QEvent *event);
 
