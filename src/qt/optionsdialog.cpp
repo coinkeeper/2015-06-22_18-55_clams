@@ -7,6 +7,7 @@
 #include "optionsmodel.h"
 #include "clamspeech.h"
 #include "guiutil.h"
+#include "util.h"
 
 #include <QDebug>
 #include <QDir>
@@ -180,9 +181,12 @@ void OptionsDialog::saveClamQuotes()
 
     foreach ( const QString &strLine, list )
         if ( !strLine.isEmpty() )
-            clamSpeech.push_back( strLine.toStdString() );
+            clamSpeech.push_back( strLine.trimmed().toStdString() );
 
-    // TODO insert save call here
+    // save clam quotes
+    qDebug() << "saving clamspeech";
+    if ( !SaveClamSpeech() )
+        qDebug() << "CLAMSpeech FAILED to save!";
 
     // send signal to BitcoinGUI->SendCoinsDialog
     emit onClamSpeechUpdated();

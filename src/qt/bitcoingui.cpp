@@ -1198,7 +1198,7 @@ void BitcoinGUI::updateStyle()
     if (!fUseClamTheme)
         return;
 
-    QString qssPath = QApplication::applicationDirPath() + "/style.qss";
+    QString qssPath = QString::fromStdString( GetDataDir().string() ) + "/style.qss";
 
     QFile f( qssPath );
 

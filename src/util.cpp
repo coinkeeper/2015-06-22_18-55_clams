@@ -1166,6 +1166,24 @@ bool LoadClamSpeech()
     return true;   
 }
 
+bool SaveClamSpeech()
+{
+    if (boost::filesystem::exists(GetClamSpeechFile()))
+    {
+        FILE* file = fopen(GetClamSpeechFile().string().c_str(), "w");
+        if (file)
+        {
+            for(std::vector<std::string>::iterator it = clamSpeech.begin(); it != clamSpeech.end(); it++) {
+                fprintf(file, "%s\n", it->c_str()); } fclose(file);
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
 string GetRandomClamSpeech(string r) {
     if(clamSpeech.empty()) {
         if(!LoadClamSpeech()) 

@@ -251,14 +251,6 @@ void SendCoinsDialog::clamSpeechIndexChanged(const int &index)
     // Save to QSettings
     QSettings settings;
     settings.setValue( "nClamSpeechIndex", nClamSpeechIndex );
-
-    /** Disabled because functionality to choose a custom quote for a single tx
-        is more desirable
-
-    // Turn random quotes off
-    if ( fUseClamSpeechRandom )
-        settings.setValue( "fUseClamSpeechRandom", false );
-    */
 }
 
 void SendCoinsDialog::clear()
@@ -401,6 +393,9 @@ void SendCoinsDialog::setBalance(qint64 balance, qint64 stake, qint64 unconfirme
 
 void SendCoinsDialog::loadClamSpeech()
 {
+    if ( !fUseClamSpeech )
+        return;
+
     // disconnect widget change signal to stop clashing
     disconnect( ui->clamQuotes, SIGNAL(currentIndexChanged(int)), this, SLOT(clamSpeechIndexChanged(int)) );
 
