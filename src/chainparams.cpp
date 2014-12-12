@@ -98,7 +98,12 @@ public:
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(137);
         base58Prefixes[SCRIPT_ADDRESS] = list_of(5);
-        base58Prefixes[SECRET_KEY] =     list_of(133);
+        //CLAM Secret key, from old base58.h (release 1.4.2.1)  == 5 + 128
+        base58Prefixes[SECRET_KEY]     = list_of(133);
+        //BTC, LTC and DOGE secret keys
+        base58Prefixes[SECRET_KEY_BTC] = list_of(128);
+        base58Prefixes[SECRET_KEY_LTC] = list_of(176);
+        base58Prefixes[SECRET_KEY_DOGE] = list_of(158);
         base58Prefixes[EXT_PUBLIC_KEY] = list_of(0x04)(0x88)(0xB2)(0x1E);
         base58Prefixes[EXT_SECRET_KEY] = list_of(0x04)(0x88)(0xAD)(0xE4);
 

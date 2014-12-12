@@ -1175,7 +1175,18 @@ string GetRandomClamSpeech(string r) {
 
 bool LoadQuoteList()
 {
-    clamSpeech.clear();
+
+    // If file doesn't exist, create it using the clamSpeech quote list
+    if (!boost::filesystem::exists(GetQuoteFile())) {
+        FILE* file = fopen(GetQuoteFile().string().c_str(), "w");
+        if (file)
+        {
+            fprintf(file, "### Personal quote file is empty. Add your own personal quotes here\n");
+            fclose(file);         
+        }   
+    }
+
+    quoteList.clear();
     std::ifstream quotefile(GetQuoteFile().string().c_str());
 
     if(!quotefile) //Always test the file open.
@@ -1184,7 +1195,7 @@ bool LoadQuoteList()
     string line;
     while (getline(quotefile, line, '\n'))
     {
-        clamSpeech.push_back (line);
+        quoteList.push_back (line);
     }
     return true;
 }
