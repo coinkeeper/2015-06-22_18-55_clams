@@ -110,7 +110,8 @@ Value importprivkey(const Array& params, bool fHelp)
     if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "importprivkey <clamprivkey> [label] [rescan=true]\n"
-            "Adds a private key (as returned by dumpprivkey) to your wallet.");
+            "Adds a private key (as returned by dumpprivkey) to your wallet.\n"
+	    "Accepts BTC, LTC and DOGE private keys\n");
 
     string strSecret = params[0].get_str();
     string strLabel = "";
