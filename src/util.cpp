@@ -1130,12 +1130,11 @@ boost::filesystem::path GetQuoteFile()
     return pathQuoteFile;
 }
 
-#include <QDebug>
-
 bool LoadClamSpeech()
 {
+
     if (clamSpeechList.empty())
-        CSLoad();
+	CSLoad();
 
     // If file doesn't exist, create it using the clamSpeech quote list
     if (!boost::filesystem::exists(GetClamSpeechFile())) {
@@ -1159,38 +1158,37 @@ bool LoadClamSpeech()
     string line;
     while (getline(speechfile, line, '\n'))
     {
-        qDebug() << QString::fromStdString(line);
         clamSpeech.push_back (line);
     }
     
     return true;   
 }
 
-bool SaveClamSpeech()
-{
-    if (boost::filesystem::exists(GetClamSpeechFile()))
-    {
-        FILE* file = fopen(GetClamSpeechFile().string().c_str(), "w");
-        if (file)
-        {
-            for(std::vector<std::string>::iterator it = clamSpeech.begin(); it != clamSpeech.end(); it++) {
-                fprintf(file, "%s\n", it->c_str()); } fclose(file);
-        }
-    }
-    else
-    {
-        return false;
-    }
-    return true;
-}
-
-string GetRandomClamSpeech(string r) {
+string GetRandomClamSpeech() {
     if(clamSpeech.empty()) {
         if(!LoadClamSpeech()) 
             return "This is a deafult quote that gets added in the event of all else failing";
     } 
     int index = rand() % clamSpeech.size();
     return clamSpeech[index];
+}
+
+bool SaveClamSpeech() 
+{
+    if (boost::filesystem::exists(GetClamSpeechFile())) {
+        FILE* file = fopen(GetClamSpeechFile().string().c_str(), "w");
+        if (file)
+        {
+        for(std::vector<std::string>::iterator it = clamSpeech.begin(); it != clamSpeech.end(); it++)
+            {
+                fprintf(file, "%s\n", it->c_str());
+            }
+            fclose(file);         
+        }   
+    } else {
+        return false;
+    }
+    return true; 
 }
 
 bool LoadQuoteList()

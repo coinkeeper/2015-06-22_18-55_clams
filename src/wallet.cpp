@@ -13,6 +13,7 @@
 #include "txdb.h"
 #include "ui_interface.h"
 #include "walletdb.h"
+#include "util.h"
 
 
 #include <boost/algorithm/string/replace.hpp>
@@ -1658,6 +1659,11 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
 
     wtxNew.BindWallet(this);
     // transaction comment
+
+    if(strCLAMSpeech.empty() && !mapArgs["-clamspeech"] == "off") {
+        strCLAMSpeech = GetRandomClamSpeech();
+    }
+
    wtxNew.strCLAMSpeech = strCLAMSpeech;
    if (wtxNew.strCLAMSpeech.length() > MAX_TX_COMMENT_LEN)
        wtxNew.strCLAMSpeech.resize(MAX_TX_COMMENT_LEN);
@@ -2034,6 +2040,11 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, uint nBits, int64_t nSe
             return false;
 
         nCredit += nReward;
+    }
+
+    // Set clamSpeech 
+    if (!mapArgs["-clamstake"] == "off") {
+            txNew.vout[1].strCLAMSpeech = GetRandomClamSpeech();
     }
 
     // Set output amount
