@@ -113,7 +113,7 @@ static void handleRunawayException(std::exception *e)
 }
 
 /* qDebug() message handler --> debug.log */
-#if QT_VERSION < 0x050000
+#if QT_VERSION < 0x052000
 void DebugMessageHandler(QtMsgType type, const char * msg)
 {
     const char *category = (type == QtDebugMsg) ? "qt" : NULL;
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
     // Install global event filter that makes sure that long tooltips can be word-wrapped
     app.installEventFilter(new GUIUtil::ToolTipToRichTextFilter(TOOLTIP_WRAP_THRESHOLD, &app));
     // Install qDebug() message handler to route to debug.log
-#if QT_VERSION < 0x050000
+#if QT_VERSION < 0x052000
     qInstallMsgHandler(DebugMessageHandler);
 #else
     qInstallMessageHandler(DebugMessageHandler);
