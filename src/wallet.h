@@ -78,8 +78,8 @@ public:
 class CWallet : public CCryptoKeyStore, public CWalletInterface
 {
 private:
-    bool SelectCoinsForStaking(int64_t nTargetValue, uint nSpendTime, std::set<std::pair<const CWalletTx*,uint> >& setCoinsRet, int64_t& nValueRet) const;
-    bool SelectCoins(int64_t nTargetValue, uint nSpendTime, std::set<std::pair<const CWalletTx*,uint> >& setCoinsRet, int64_t& nValueRet, const CCoinControl *coinControl=NULL) const;
+    bool SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet) const;
+    bool SelectCoins(int64_t nTargetValue, unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet, const CCoinControl *coinControl=NULL) const;
 
     CWalletDB *pwalletdbEncryption;
 
@@ -104,9 +104,9 @@ public:
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
 
 
-    typedef std::map<uint, CMasterKey> MasterKeyMap;
+    typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;
-    uint nMasterKeyMaxID;
+    unsigned int nMasterKeyMaxID;
 
     CWallet()
     {
@@ -206,13 +206,13 @@ public:
 
     bool GetExpectedStakeTime(uint64_t& nExpected);
     bool GetStakeWeight(uint64_t& nWeight);
-    bool CreateCoinStake(const CKeyStore& keystore, uint nBits, int64_t nSearchInterval, int64_t nFees, CTransaction& txNew, CKey& key);
+    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CTransaction& txNew, CKey& key);
 
     std::string SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNew, std::string strCLAMSpeech = "", bool fAskFee=false);
     std::string SendMoneyToDestination(const CTxDestination &address, int64_t nValue, CWalletTx& wtxNew, std::string strCLAMSpeech = "", bool fAskFee=false);
 
     bool NewKeyPool();
-    bool TopUpKeyPool(uint nSize = 0);
+    bool TopUpKeyPool(unsigned int nSize = 0);
     int64_t AddReserveKey(const CKeyPool& keypool);
     void ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool);
     void KeepKey(int64_t nIndex);
@@ -308,7 +308,7 @@ public:
         }
     }
 
-    uint GetKeyPoolSize()
+    unsigned int GetKeyPoolSize()
     {
         AssertLockHeld(cs_wallet); // setKeyPool
         return setKeyPool.size();
@@ -398,9 +398,9 @@ public:
     std::vector<CMerkleTx> vtxPrev;
     mapValue_t mapValue;
     std::vector<std::pair<std::string, std::string> > vOrderForm;
-    uint fTimeReceivedIsTxTime;
-    uint nTimeReceived;  // time received by this node
-    uint nTimeSmart;
+    unsigned int fTimeReceivedIsTxTime;
+    unsigned int nTimeReceived;  // time received by this node
+    unsigned int nTimeSmart;
     char fFromMe;
     std::string strFromAccount;
     std::vector<char> vfSpent; // which outputs are already spent
@@ -506,7 +506,7 @@ public:
 
             ReadOrderPos(pthis->nOrderPos, pthis->mapValue);
 
-            pthis->nTimeSmart = mapValue.count("timesmart") ? (uint)atoi64(pthis->mapValue["timesmart"]) : 0;
+            pthis->nTimeSmart = mapValue.count("timesmart") ? (unsigned int)atoi64(pthis->mapValue["timesmart"]) : 0;
         }
 
         pthis->mapValue.erase("fromaccount");
@@ -521,7 +521,7 @@ public:
     bool UpdateSpent(const std::vector<char>& vfNewSpent)
     {
         bool fReturn = false;
-        for (uint i = 0; i < vfNewSpent.size(); i++)
+        for (unsigned int i = 0; i < vfNewSpent.size(); i++)
         {
             if (i == vfSpent.size())
                 break;
@@ -551,7 +551,7 @@ public:
         MarkDirty();
     }
 
-    void MarkSpent(uint nOut)
+    void MarkSpent(unsigned int nOut)
     {
         if (nOut >= vout.size())
             throw std::runtime_error("CWalletTx::MarkSpent() : nOut out of range");
@@ -563,7 +563,7 @@ public:
         }
     }
 
-    void MarkUnspent(uint nOut)
+    void MarkUnspent(unsigned int nOut)
     {
         if (nOut >= vout.size())
             throw std::runtime_error("CWalletTx::MarkUnspent() : nOut out of range");
@@ -575,7 +575,7 @@ public:
         }
     }
 
-    bool IsSpent(uint nOut) const
+    bool IsSpent(unsigned int nOut) const
     {
         if (nOut >= vout.size())
             throw std::runtime_error("CWalletTx::IsSpent() : nOut out of range");
@@ -619,7 +619,7 @@ public:
             return nAvailableCreditCached;
 
         int64_t nCredit = 0;
-        for (uint i = 0; i < vout.size(); i++)
+        for (unsigned int i = 0; i < vout.size(); i++)
         {
             if (!IsSpent(i))
             {
@@ -675,7 +675,7 @@ public:
         std::vector<const CMerkleTx*> vWorkQueue;
         vWorkQueue.reserve(vtxPrev.size()+1);
         vWorkQueue.push_back(this);
-        for (uint i = 0; i < vWorkQueue.size(); i++)
+        for (unsigned int i = 0; i < vWorkQueue.size(); i++)
         {
             const CMerkleTx* ptx = vWorkQueue[i];
 

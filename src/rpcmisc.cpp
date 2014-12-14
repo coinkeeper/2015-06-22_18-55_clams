@@ -218,7 +218,7 @@ Value validateoutputs(const Array& params, bool fHelp)
         // check that the output number is in range
         if ((unsigned)nOutput >= tx.vout.size()) {
             entry.push_back(Pair("status", "vout too high"));
-            entry.push_back(Pair("outputs", tx.vout.size()));
+            entry.push_back(Pair("outputs", (int)tx.vout.size()));
             ret.push_back(entry);
             continue;
         }

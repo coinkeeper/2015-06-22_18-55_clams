@@ -527,7 +527,7 @@ void CNode::copyStats(CNodeStats &stats)
 #undef X
 
 // requires LOCK(cs_vRecvMsg)
-bool CNode::ReceiveMsgBytes(const char *pch, uint nBytes)
+bool CNode::ReceiveMsgBytes(const char *pch, unsigned int nBytes)
 {
     while (nBytes > 0) {
 
@@ -558,11 +558,11 @@ bool CNode::ReceiveMsgBytes(const char *pch, uint nBytes)
     return true;
 }
 
-int CNetMessage::readHeader(const char *pch, uint nBytes)
+int CNetMessage::readHeader(const char *pch, unsigned int nBytes)
 {
     // copy data to temporary parsing buffer
-    uint nRemaining = 24 - nHdrPos;
-    uint nCopy = std::min(nRemaining, nBytes);
+    unsigned int nRemaining = 24 - nHdrPos;
+    unsigned int nCopy = std::min(nRemaining, nBytes);
 
     memcpy(&hdrbuf[nHdrPos], pch, nCopy);
     nHdrPos += nCopy;
@@ -589,10 +589,10 @@ int CNetMessage::readHeader(const char *pch, uint nBytes)
     return nCopy;
 }
 
-int CNetMessage::readData(const char *pch, uint nBytes)
+int CNetMessage::readData(const char *pch, unsigned int nBytes)
 {
-    uint nRemaining = hdr.nMessageSize - nDataPos;
-    uint nCopy = std::min(nRemaining, nBytes);
+    unsigned int nRemaining = hdr.nMessageSize - nDataPos;
+    unsigned int nCopy = std::min(nRemaining, nBytes);
 
     if (vRecv.size() < nDataPos + nCopy) {
         // Allocate up to 256 KiB ahead, but never more than the total message size.
@@ -661,7 +661,7 @@ static list<CNode*> vNodesDisconnected;
 
 void ThreadSocketHandler()
 {
-    uint nPrevNodeCount = 0;
+    unsigned int nPrevNodeCount = 0;
 
     while (true)
     {
@@ -782,7 +782,7 @@ void ThreadSocketHandler()
             {
                 int nErr = WSAGetLastError();
                 LogPrintf("socket select error %d\n", nErr);
-                for (uint i = 0; i <= hSocketMax; i++)
+                for (unsigned int i = 0; i <= hSocketMax; i++)
                     FD_SET(i, &fdsetRecv);
             }
             FD_ZERO(&fdsetSend);
@@ -1272,7 +1272,7 @@ void ThreadOpenAddedConnections()
         }
     }
 
-    for (uint i = 0; true; i++)
+    for (unsigned int i = 0; true; i++)
     {
         list<string> lAddresses(0);
         {

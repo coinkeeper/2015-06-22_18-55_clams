@@ -152,7 +152,7 @@ Value getworkex(const Array& params, bool fHelp)
     if (params.size() == 0)
     {
         // Update block
-        static uint nTransactionsUpdatedLast;
+        static unsigned int nTransactionsUpdatedLast;
         static CBlockIndex* pindexPrev;
         static int64_t nStart;
         static CBlock* pblock;
@@ -183,7 +183,7 @@ Value getworkex(const Array& params, bool fHelp)
         pblock->nNonce = 0;
 
         // Update nExtraNonce
-        static uint nExtraNonce = 0;
+        static unsigned int nExtraNonce = 0;
         IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
         // Save
@@ -235,7 +235,7 @@ Value getworkex(const Array& params, bool fHelp)
 
         // Byte reverse
         for (int i = 0; i < 128/4; i++)
-            ((uint*)pdata)[i] = ByteReverse(((uint*)pdata)[i]);
+            ((unsigned int *)pdata)[i] = ByteReverse(((unsigned int *)pdata)[i]);
 
         // Get saved block
         if (!mapNewBlock.count(pdata->hashMerkleRoot))
@@ -286,7 +286,7 @@ Value getwork(const Array& params, bool fHelp)
     if (params.size() == 0)
     {
         // Update block
-        static uint nTransactionsUpdatedLast;
+        static unsigned int nTransactionsUpdatedLast;
         static CBlockIndex* pindexPrev;
         static int64_t nStart;
         static CBlock* pblock;
@@ -325,7 +325,7 @@ Value getwork(const Array& params, bool fHelp)
         pblock->nNonce = 0;
 
         // Update nExtraNonce
-        static uint nExtraNonce = 0;
+        static unsigned int nExtraNonce = 0;
         IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
         // Save
@@ -356,7 +356,7 @@ Value getwork(const Array& params, bool fHelp)
 
         // Byte reverse
         for (int i = 0; i < 128/4; i++)
-            ((uint*)pdata)[i] = ByteReverse(((uint*)pdata)[i]);
+            ((unsigned int *)pdata)[i] = ByteReverse(((unsigned int *)pdata)[i]);
 
         // Get saved block
         if (!mapNewBlock.count(pdata->hashMerkleRoot))
@@ -424,7 +424,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_MISC_ERROR, "No more PoW blocks");
 
     // Update block
-    static uint nTransactionsUpdatedLast;
+    static unsigned int nTransactionsUpdatedLast;
     static CBlockIndex* pindexPrev;
     static int64_t nStart;
     static CBlock* pblock;
