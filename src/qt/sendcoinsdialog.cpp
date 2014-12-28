@@ -40,8 +40,7 @@ SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
     ui->sendButton->setIcon(QIcon());
 #endif
 
-    /* Do not move this to the XML file, Qt before 4.7 will choke on it */
-    ui->lineEditCoinControlChange->setPlaceholderText(tr("Enter a Clam address (e.g. xqgY4r2RoEdqYk3QsAqFckyf9pRHN6i)"));
+    GUIUtil::setupAddressWidget(ui->lineEditCoinControlChange, this);
 
     addEntry();
 
@@ -415,7 +414,7 @@ void SendCoinsDialog::loadClamSpeech()
     {
         qDebug() << "Random quote selected";
 
-        qsrand( QDateTime::currentMSecsSinceEpoch() );
+        qsrand( (QDateTime().toTime_t() * 1000) );
         ui->clamQuotes->setCurrentIndex( qrand() % ui->clamQuotes->count() );
     }
     else // Fixed chosen quote
