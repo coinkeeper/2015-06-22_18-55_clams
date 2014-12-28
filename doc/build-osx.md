@@ -141,4 +141,3 @@ Other commands:
 
 ./clamd -daemon # to start the bitcoin daemon.
 ./clamd --help  # for a list of command-line options.
-./clam-cli help    # When the daemon is running, to get a list of RPC commands
