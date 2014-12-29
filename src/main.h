@@ -163,7 +163,90 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CTransaction &tx, bool fLimitFree,
                         bool* pfMissingInputs);
 
 
+class CDiskBlockPos
+{
+public:
+    int nHeight;
+    int nAlternative;
 
+    CDiskBlockPos() {
+        SetNull();
+    }
+
+    CDiskBlockPos(int nHeightIn, int nAlternativeIn = 0) {
+        nHeight = nHeightIn;
+        nAlternative = nAlternativeIn;
+    }
+
+    std::string GetAlternative() const {
+        char c[9]={0,0,0,0,0,0,0,0,0};
+        char *cp = &c[8];
+        unsigned int n = nAlternative;
+        while (n > 0 && cp>c) {
+            n--;
+            *(--cp) = 'a' + (n % 26);
+            n /= 26;
+        }
+        return std::string(cp);
+    }
+
+    boost::filesystem::path GetDirectory(const boost::filesystem::path &base) const {
+        assert(nHeight != -1);
+        return base / strprintf("era%02u", nHeight / 210000) / 
+                      strprintf("cycle%04u", nHeight / 2016);
+    }
+
+    boost::filesystem::path GetFileName(const boost::filesystem::path &base) const {
+        return GetDirectory(base) / strprintf("%08u%s.blk", nHeight, GetAlternative().c_str());
+    }
+
+    boost::filesystem::path GetUndoFile(const boost::filesystem::path &base) const {
+        return GetDirectory(base) / strprintf("%08u%s.und", nHeight, GetAlternative().c_str());
+    }
+
+    // TODO: make thread-safe (lockfile, atomic file creation, ...?)
+    void MakeUnique(const boost::filesystem::path &base) {
+        while (boost::filesystem::exists(GetFileName(base)))
+            nAlternative++;
+    }
+
+    IMPLEMENT_SERIALIZE(({
+        CDiskBlockPos *me = const_cast<CDiskBlockPos*>(this);
+        if (!fRead) {
+            unsigned int nCode = (nHeight + 1) * 2 + (nAlternative > 0);
+            READWRITE(VARINT(nCode));
+            if (nAlternative > 0) {
+                unsigned int nAlt = nAlternative - 1;
+                READWRITE(VARINT(nAlt));
+            }
+        } else {
+            unsigned int nCode = 0;
+            READWRITE(VARINT(nCode));
+            me->nHeight = (nCode / 2) - 1;
+            if (nCode & 1) {
+                unsigned int nAlt = 0;
+                READWRITE(VARINT(nAlt));
+                me->nAlternative = 1 + nAlt;
+            } else {
+                me->nAlternative = 0;
+            }
+        }
+    });)
+
+    friend bool operator==(const CDiskBlockPos &a, const CDiskBlockPos &b) {
+        return ((a.nHeight == b.nHeight) && (a.nAlternative == b.nAlternative));
+    }
+
+    friend bool operator!=(const CDiskBlockPos &a, const CDiskBlockPos &b) {
+        return !(a == b);
+    }
+
+    void SetNull() { nHeight = -1; nAlternative = 0; }
+    bool IsNull() const { return ((nHeight == -1) && (nAlternative == 0)); }
+
+    void SetMemPool() { nHeight = -1; nAlternative = -1; }
+    bool IsMemPool() const { return ((nHeight == -1) && (nAlternative == -1)); }
+};
 
 
 
@@ -524,6 +607,16 @@ public:
     )
 };
 
+/** Undo information for a CBlock */
+class CBlockUndo
+{
+public:
+    std::vector<CTxUndo> vtxundo;
+
+    IMPLEMENT_SERIALIZE(
+        READWRITE(vtxundo);
+    )
+};
 
 /** pruned version of CTransaction: only retains metadata and unspent transaction outputs
  *
