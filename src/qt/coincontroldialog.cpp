@@ -689,7 +689,7 @@ void CoinControlDialog::updateView()
             itemOutput->setText(COLUMN_AGE, strPad(QString::number(age), 5, " "));
 
             // weight
-            int weight = floorf((GetTime() - out.tx->GetTxTime() - nStakeMinAge) * out.tx->vout[out.i].nValue / BitcoinUnits::factor(BitcoinUnits::BTC) / (double)(1440 * nTargetStakeSpacing));
+            int weight = floorf((GetTime() - out.tx->GetTxTime()) * out.tx->vout[out.i].nValue / BitcoinUnits::factor(BitcoinUnits::BTC) / (double)(1440 * nTargetStakeSpacing));
             if (weight < 0) weight = 0;
             itemOutput->setText(COLUMN_WEIGHT, strPad(QString::number(weight), 5, " "));
             dWeight += weight;
