@@ -98,8 +98,8 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
     MacDockIconHandler::instance()->setIcon(QIcon(":icons/bitcoin"));
 #endif
-    
-    
+
+
     // Accept D&D of URIs
     setAcceptDrops(true);
 
@@ -518,7 +518,7 @@ void BitcoinGUI::createTrayIcon()
     trayIconMenu->addAction(quitAction);
 #endif
 
-    notificator = new Notificator(qApp->applicationName(), trayIcon);
+    notificator = new Notificator(qApp->applicationName(), trayIcon, this);
 }
 
 #ifndef Q_OS_MAC
@@ -986,7 +986,7 @@ void BitcoinGUI::backupWallet()
 {
 #if QT_VERSION < 0x050000
     QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
-#else	
+#else
     QString saveDir = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).first();
 #endif
     QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
@@ -1175,7 +1175,7 @@ void BitcoinGUI::updateStakingIcon()
 
         nWeight /= COIN;
         nNetworkWeight /= COIN;
-	
+
         labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight).arg(nNetworkWeight).arg(text));
     }
