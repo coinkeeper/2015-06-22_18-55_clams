@@ -998,18 +998,24 @@ void BitcoinGUI::backupWallet()
 
 void BitcoinGUI::importWallet()
 {
-#if QT_VERSION < 0x050000
-    QString workDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
-#else    
-    QString workDir = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).first();
-#endif
-    QString filename = QFileDialog::getOpenFileName(this, tr("Import Wallet"), workDir, tr("Wallet Data (*.dat)"));
+    QString workDir = QString::fromStdString(GetDataDir().string());
+
+    // Make getOpenFileName for one file, unlimited filters
+    QFileDialog fd(this);
+    fd.setDirectory(workDir);
+    fd.setNameFilter(tr("Wallet Data (*.dat)"));
+    fd.setFilter(QDir::AllDirs | QDir::AllEntries | QDir::Hidden | QDir::System); // show all that shit
+    fd.setFileMode(QFileDialog::ExistingFile); // return one file name at [0]
+    fd.setViewMode(QFileDialog::Detail); // show standard file detail view
+    fd.exec();
+
+    QString filename = fd.selectedFiles().value(0); // incase empty or cancel, use value() instead of at() for safe pointer
     QString passwd;
     QString rpcCmd;
     bool isValidWallet = false;
 
     /** Cancel pressed */
-    if(filename.isEmpty())
+    if(filename.trimmed().isEmpty())
         return;
 
     /** Attempt to begin the import, and detect fails */
@@ -1037,6 +1043,8 @@ void BitcoinGUI::importWallet()
 
          passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password);
     }
+
+    qDebug() << "Importing wallet file" << filename;
 
     rpcCmd = QString("importwallet %1 %2")
             .arg(filename)
