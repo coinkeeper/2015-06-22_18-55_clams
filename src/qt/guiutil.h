@@ -9,7 +9,11 @@
 extern bool fUseClamTheme;
 extern bool fUseClamSpeech;
 extern bool fUseClamSpeechRandom;
-extern int  nClamSpeechIndex;
+extern int nClamSpeechIndex;
+extern int nStyleSheetVersion;
+
+const int CURRENT_STYLESHEET_VERSION = 1;
+
 
 class SendCoinsRecipient;
 

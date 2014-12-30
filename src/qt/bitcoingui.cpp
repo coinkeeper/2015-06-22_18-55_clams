@@ -60,6 +60,7 @@
 #include <QStyle>
 #include <QInputDialog>
 #include <QPushButton>
+#include <QSettings>
 
 #include <iostream>
 
@@ -1145,7 +1146,6 @@ void BitcoinGUI::updateWeight()
 
 void BitcoinGUI::updateStakingIcon()
 {
-    detectNewVersion();
     updateWeight();
 
     if (nLastCoinStakeSearchInterval && nWeight)
@@ -1218,34 +1218,94 @@ void BitcoinGUI::showMiscMenu()
 
 void BitcoinGUI::updateStyle()
 {
-    if (!fUseClamTheme)
+    // check if custom styles are enabled
+    if ( !fUseClamTheme )
         return;
 
-    QString qssPath = QString::fromStdString( GetDataDir().string() ) + "/style.qss";
+    QString styleSheet;
+    QString qssPath = QString::fromStdString( GetDataDir().string() ) \
+                      + "/style.qss";
 
-    QFile f( qssPath );
-
-    if (!f.exists())
+    // there is no file, write the default qss
+    if ( !QFile::exists( qssPath ) )
         writeDefaultStyleSheet( qssPath );
 
-    if (!f.open(QFile::ReadOnly))
+    // check for new client version, store the old qss, write a new one
+    if ( nStyleSheetVersion < CURRENT_STYLESHEET_VERSION )
+        writeUpdatedStyleSheet( qssPath );
+
+    // load style.qss
+    if ( QFile::exists( qssPath ) )
     {
-        qDebug() << "failed to open style sheet";
+        qDebug() << "Updating stylesheet";
+        QFile f( qssPath );
+        f.open( QFile::ReadOnly );
+        styleSheet = f.readAll();
+        f.close();
+    }
+
+    // check for empty stylesheet
+    if( styleSheet.isEmpty() )
+    {
+        qDebug() << "FAILED to load valid stylesheet by file, using qrc";
+        QFile qssQrc( ":/text/stylesheet" );
+        qssQrc.open( QFile::ReadOnly );
+        styleSheet = qssQrc.readAll();
+        qssQrc.close();
+    }
+
+    // if the stylesheet is invalid, qrc/qss is broken or the world ended
+    qApp->setStyleSheet( styleSheet );
+}
+
+void BitcoinGUI::writeUpdatedStyleSheet(const QString &qssPath)
+{
+    qDebug() << "Writing version updated style sheet";
+
+    if ( !QFile::exists( qssPath ) )
+    {
+        // should never happen unless the user changed access permissions
+        qDebug() << "FAILED updating stylesheet, does not exist!";
         return;
     }
 
-    qDebug() << "loading theme";
-    qApp->setStyleSheet( f.readAll() );
+    // rename old stylesheet
+    if ( !QFile::rename( qssPath, QString( qssPath ).append( ".old" ) ) )
+        qDebug() << "FAILED renaming old stylesheet!";
+
+    // write new stylesheet
+    writeDefaultStyleSheet( qssPath );
+
+    // write qsettings
+    nStyleSheetVersion = CURRENT_STYLESHEET_VERSION;
+
+    QSettings settings;
+    settings.setValue( "nStyleSheetVersion", nStyleSheetVersion );
 }
 
 void BitcoinGUI::writeDefaultStyleSheet(const QString &qssPath)
 {
-    qDebug() << "writing default style sheet";
+    qDebug() << "Writing default style sheet";
 
-    QFile qss( ":/text/stylesheet" );
-    qss.open( QFile::ReadOnly );
-
+    QFile qssQrc( ":/text/stylesheet" );
     QFile f( qssPath );
-    f.open( QFile::ReadWrite );
-    f.write( qss.readAll() );
+
+    qssQrc.open( QFile::ReadOnly );
+    f.open( QFile::WriteOnly );
+
+    // check for read/write permissions
+    if ( !f.isWritable() || !qssQrc.isReadable() )
+    {
+        qDebug() << "FAILED to read or write on style sheet swap";
+    }
+    else
+    {
+        f.seek(0);
+        // output bytes written if we wrote successfully
+        if ( f.write( qssQrc.readAll() ) )
+            qDebug() << "SUCCESS Wrote" << f.size() << "bytes to new stylesheet";
+    }
+
+    qssQrc.close();
+    f.close();
 }

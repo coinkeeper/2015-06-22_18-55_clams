@@ -17,7 +17,8 @@
 bool fUseClamTheme;
 bool fUseClamSpeech;
 bool fUseClamSpeechRandom;
-int  nClamSpeechIndex;
+int nClamSpeechIndex;
+int nStyleSheetVersion;
 
 OptionsModel::OptionsModel(QObject *parent) :
     QAbstractListModel(parent)
@@ -63,6 +64,7 @@ void OptionsModel::Init()
     fUseClamSpeech = settings.value("fUseClamSpeech", true).toBool();
     fUseClamSpeechRandom = settings.value("fUseClamSpeechRandom", true).toBool();
     nClamSpeechIndex = settings.value("nClamSpeechIndex", 0).toInt();
+    nStyleSheetVersion = settings.value("nStyleSheetVersion", 0).toInt();
 
     // These are shared with core Bitcoin; we want
     // command-line options to override the GUI settings:

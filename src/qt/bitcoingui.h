@@ -132,6 +132,7 @@ private:
     void toggleExportButton(bool toggle);
 
     void updateStyle();
+    void writeUpdatedStyleSheet(const QString &qssPath);
     void writeDefaultStyleSheet(const QString &qssPath);
 
 public slots:
