@@ -480,5 +480,28 @@ void HelpMessageBox::showOrPrint()
 #endif
 }
 
+#if defined(WIN32)
+#include <windows.h>
+QString toDOSPathFormat(const QString &filename)
+{
+    wchar_t* input = new wchar_t[file.size()+1];
+    file.toWCharArray(input);
+    input[file.size()] = L'\0'; // terminate string
+    long length = GetShortPathName(input, NULL, 0);
+    wchar_t* output = new wchar_t[length];
+    GetShortPathName(input, output, length);
+    QString ret = QString::fromWCharArray(output, length-1); // discard
+    delete []input;
+    delete []output;
+    return ret;
+}
+#else
+QString toDOSPathFormat(const QString &filename)
+{
+    return filename;
+}
+#endif
+
+
 } // namespace GUIUtil
 

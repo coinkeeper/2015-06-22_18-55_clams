@@ -26,6 +26,9 @@ QT_END_NAMESPACE
  */
 namespace GUIUtil
 {
+    // Convert path to DOS 8.3 format
+    QString toDOSPathFormat(const QString &filename);
+
     // Create human-readable string from date
     QString dateTimeStr(const QDateTime &datetime);
     QString dateTimeStr(qint64 nTime);
