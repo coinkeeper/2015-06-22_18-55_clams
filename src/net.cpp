@@ -47,7 +47,6 @@ struct LocalServiceInfo {
 //
 // Global state variables
 //
-uint32_t fClientsWithNewerVersion = 0;
 bool fDiscover = true;
 uint64_t nLocalServices = NODE_NETWORK;
 static CCriticalSection cs_mapLocalHost;

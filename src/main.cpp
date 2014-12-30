@@ -3242,10 +3242,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     else if (strCommand == "verack")
     {
         pfrom->SetRecvVersion(min(pfrom->nVersion, PROTOCOL_VERSION));
-
-         // TODO: add same peer detect in case of malicious version advertisement
-         if ( pfrom->nVersion > PROTOCOL_VERSION )
-             fClientsWithNewerVersion++;
     }
 
 

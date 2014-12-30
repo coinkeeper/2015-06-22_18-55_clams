@@ -1133,15 +1133,15 @@ void BitcoinGUI::updateWeight()
   pwalletMain->GetStakeWeight(nWeight);
 }
 
-void BitcoinGUI::detectNewVersion()
-{
-    // Ghetto protocol_version detect
-    if ( fClientsWithNewerVersion > 2 )
-    {
-        labelUpdateIcon->setPixmap(QIcon(":/icons/update_notify").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
-        labelUpdateIcon->setToolTip(tr("A new version is available! Visit http://www.clamclient.com for details."));
-    }
-}
+//void BitcoinGUI::detectNewVersion()
+//{
+//    // OLD protocol_version detect
+//    if ( fClientsWithNewerVersion > 2 )
+//    {
+//        labelUpdateIcon->setPixmap(QIcon(":/icons/update_notify").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+//        labelUpdateIcon->setToolTip(tr("A new version is available! Visit http://www.clamclient.com for details."));
+//    }
+//}
 
 void BitcoinGUI::updateStakingIcon()
 {
