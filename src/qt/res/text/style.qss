@@ -419,6 +419,12 @@ QTreeView::branch
     background-color: #323232;
 }
 
+QToolBar
+{
+    background-color: #323232;
+    border-right: 1px solid #212121;
+}
+
 /* Removed to avoid OSX transparency issues
 QToolTip
 {
