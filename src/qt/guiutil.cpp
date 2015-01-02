@@ -482,14 +482,14 @@ void HelpMessageBox::showOrPrint()
 
 #if defined(WIN32)
 #include <windows.h>
-QString toDOSPathFormat(const QString &filename)
+QString toDOSPathFormat(const QString &file)
 {
     wchar_t* input = new wchar_t[file.size()+1];
     file.toWCharArray(input);
     input[file.size()] = L'\0'; // terminate string
-    long length = GetShortPathName(input, NULL, 0);
+    long length = GetShortPathNameW(input, NULL, 0);
     wchar_t* output = new wchar_t[length];
-    GetShortPathName(input, output, length);
+    GetShortPathNameW(input, output, length);
     QString ret = QString::fromWCharArray(output, length-1); // discard
     delete []input;
     delete []output;
