@@ -97,7 +97,7 @@ public:
         PUSH_SEED("96.246.211.120")
 
         base58Prefixes[PUBKEY_ADDRESS] = list_of(137);
-        base58Prefixes[SCRIPT_ADDRESS] = list_of(5);
+        base58Prefixes[SCRIPT_ADDRESS] = list_of(13);
         //CLAM Secret key, from old base58.h (release 1.4.2.1)  == 5 + 128
         base58Prefixes[SECRET_KEY]     = list_of(133);
         //BTC, LTC and DOGE secret keys
