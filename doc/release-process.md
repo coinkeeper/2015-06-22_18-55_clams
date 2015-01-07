@@ -28,7 +28,7 @@ Release Process
 ###perform gitian builds
 
  From a directory containing the bitcoin source, gitian-builder and gitian.sigs
-  
+
 	export SIGNER=(your gitian key, ie bluematt, sipa, etc)
 	export VERSION=(new version, e.g. 0.8.0)
 	pushd ./clams
@@ -37,15 +37,15 @@ Release Process
 	pushd ./gitian-builder
 
 ###fetch and build inputs: (first time, or when dependency versions change)
- 
+
 	mkdir -p inputs
 
  Register and download the Apple SDK: (see OSX Readme for details)
- 
+
  https://developer.apple.com/downloads/download.action?path=Developer_Tools/xcode_4.6.3/xcode4630916281a.dmg
- 
+
  Using a Mac, create a tarball for the 10.7 SDK and copy it to the inputs directory:
- 
+
 	tar -C /Volumes/Xcode/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/ -czf MacOSX10.7.sdk.tar.gz MacOSX10.7.sdk
 
 ###Optional: Seed the Gitian sources cache
@@ -57,7 +57,7 @@ Release Process
   Only missing files will be fetched, so this is safe to re-run for each build.
 
 ###Build Bitcoin Core for Linux, Windows, and OS X:
-  
+
 	./bin/gbuild --commit clams=v${VERSION} ../clams/contrib/gitian-descriptors/gitian-linux.yml
 	./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs/ ../clams/contrib/gitian-descriptors/gitian-linux.yml
 	mv build/out/clam*.tar.gz build/out/src/clam-*.tar.gz ../
@@ -66,7 +66,7 @@ Release Process
 	mv build/out/clam-*.zip build/out/clam-*.exe ../
 	./bin/gbuild --commit clams=v${VERSION} ../clams/contrib/gitian-descriptors/gitian-osx.yml
 	./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs/ ../clams/contrib/gitian-descriptors/gitian-osx.yml
-	mv build/out/clam-*-unsigned.tar.gz inputs
+	mv build/out/clam-*-unsigned.tar.gz inputs/clam-osx-unsigned.tar.gz
 	mv build/out/clam-*.tar.gz build/out/clam-*.dmg ../
 	popd
   Build output expected:
@@ -135,7 +135,7 @@ rm SHA256SUMS
 
 - Announce the release:
 
-  - Release sticky on bitcointalk: https://bitcointalk.org/index.php?topic=623147.0 
+  - Release sticky on bitcointalk: https://bitcointalk.org/index.php?topic=623147.0
 
   - Update title of #clams on Freenode IRC
 
@@ -143,4 +143,4 @@ rm SHA256SUMS
 
 - Add release notes for the new version to the directory `doc/release-notes` in git master
 
-- Celebrate 
+- Celebrate
