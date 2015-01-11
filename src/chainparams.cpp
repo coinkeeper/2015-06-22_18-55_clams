@@ -87,7 +87,6 @@ public:
         PUSH_SEED("173.31.55.8")
         PUSH_SEED("46.5.84.204")
         PUSH_SEED("54.75.227.85")
-        PUSH_SEED("66.30.80.136")
         PUSH_SEED("73.172.149.95")
         PUSH_SEED("73.55.207.245")
         PUSH_SEED("76.94.201.185")

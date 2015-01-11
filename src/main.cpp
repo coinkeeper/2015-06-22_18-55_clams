@@ -946,13 +946,6 @@ uint256 WantedByOrphan(const COrphanBlock* pblockOrphan)
         pblockOrphan = mapOrphanBlocks[pblockOrphan->hashPrev];
     return pblockOrphan->hashPrev;
 }
- 
-int generateMTRandom(unsigned int s, int range)
-{
-    random::mt19937 gen(s);
-    random::uniform_int_distribution<> dist(1, range);
-    return dist(gen);
-}
 
 // Remove a random orphan block (which does not have any dependent orphans).
 void static PruneOrphanBlocks()
@@ -979,6 +972,14 @@ void static PruneOrphanBlocks()
     mapOrphanBlocksByPrev.erase(it);
     mapOrphanBlocks.erase(hash);
 }
+ 
+int generateMTRandom(unsigned int s, int range)
+{
+    random::mt19937 gen(s);
+    random::uniform_int_distribution<> dist(1, range);
+    return dist(gen);
+}
+
 
 // miner's coin base reward
 int64_t GetProofOfWorkReward(int nHeight, int64_t nFees)
@@ -2406,25 +2407,42 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
     if (mapOrphanBlocks.count(hash))
         return error("ProcessBlock() : already have block (orphan) %s", hash.ToString());
 
+    map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(pblock->hashPrevBlock);
+    if (mi == mapBlockIndex.end())
+        return false; 
+    CBlockIndex* pPrev = (*mi).second; 
+
     // ppcoin: check proof-of-stake
     // Limited duplicity on stake: prevents block flood attack
     // Duplicate stake allowed only when there is orphan child block
     if (pblock->IsProofOfStake() && setStakeSeen.count(pblock->GetProofOfStake()) && !mapOrphanBlocksByPrev.count(hash) && !Checkpoints::WantedByPendingSyncCheckpoint(hash))
         return error("ProcessBlock() : duplicate proof-of-stake (%s, %d) for block %s", pblock->GetProofOfStake().first.ToString(), pblock->GetProofOfStake().second, hash.ToString());
 
+    // Preliminary checks
+    if (!pblock->CheckBlock())
+        return error("ProcessBlock() : CheckBlock FAILED");
+
+    uint256 hashProof;
+    // ppcoin: verify hash target and signature of coinstake tx
+    if (pblock->IsProofOfStake())
+    {
+        uint256 hashProofOfStake = 0;
+        if (!CheckProofOfStake(pPrev, pblock->vtx[1], pblock->nBits, hashProof, hashProofOfStake))
+        {
+        // Ignore CheckProofOfStake() failure for hashHighBlock in order to speed up initial
+        // blockchain download.
+            if (pblock->GetHash() != hashHighBlock) {
+               //printf("WARNING: ProcessBlock(): check proof-of-stake failed for block %s\n", hash.ToString().c_str());
+            return false; // do not error here as we expect this during initial block download
+            }
+        }
+    }
+
     CBlockIndex* pcheckpoint = Checkpoints::GetLastSyncCheckpoint();
     if (pcheckpoint && pblock->hashPrevBlock != hashBestChain && !Checkpoints::WantedByPendingSyncCheckpoint(hash))
     {
         // Extra checks to prevent "fill up memory by spamming with bogus blocks"
-        int64_t deltaTime = pblock->GetBlockTime() - pcheckpoint->nTime;
-        if (deltaTime < -10*60)
-        {
-            if (pfrom)
-                pfrom->Misbehaving(1);
-            return error("ProcessBlock() : block with timestamp before last checkpoint");
-        }
-
-/* FIXME
+        int64 deltaTime = pblock->GetBlockTime() - pcheckpoint->nTime;
         CBigNum bnNewBlock;
         bnNewBlock.SetCompact(pblock->nBits);
         CBigNum bnRequired;
@@ -2440,7 +2458,6 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
                 pfrom->Misbehaving(100);
             return error("ProcessBlock() : block with too little %s", pblock->IsProofOfStake()? "proof-of-stake" : "proof-of-work");
         }
-*/
     }
 
     // Block signature can be malleated in such a way that it increases block size up to maximum allowed by protocol
@@ -2448,15 +2465,10 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
     if (!ReserealizeBlockSignature(pblock))
         LogPrintf("WARNING: ProcessBlock() : ReserealizeBlockSignature FAILED\n");
 
-    // Preliminary checks
-    if (!pblock->CheckBlock())
-        return error("ProcessBlock() : CheckBlock FAILED");
-
     // ppcoin: ask for pending sync-checkpoint if any
     if (!IsInitialBlockDownload())
         Checkpoints::AskForPendingSyncCheckpoint(pfrom);
 
-    // If we don't already have its previous block, shunt it off to holding area until we get it
     if (!mapBlockIndex.count(pblock->hashPrevBlock))
     {
         LogPrintf("ProcessBlock: ORPHAN BLOCK %lu, prev=%s\n", (unsigned long)mapOrphanBlocks.size(), pblock->hashPrevBlock.ToString());
@@ -3047,11 +3059,17 @@ void static ProcessGetData(CNode* pfrom)
                     // Trigger them to send a getblocks request for the next batch of inventory
                     if (inv.hash == pfrom->hashContinue)
                     {
-                        // Bypass PushInventory, this must send even if redundant,
-                        // and we want it right after the last block so they don't
-                        // wait for other stuff first.
+                        // Default behavior of PoS coins is to send last PoW block here which client
+                        // receives as an orphan. With CLAM we want hyper download speed so further
+                        // block (index HIGH_BLOCK_INDEX) is sent. If server does not have it yet,
+                        // then proceeds with default behavior.
                         vector<CInv> vInv;
-                        vInv.push_back(CInv(MSG_BLOCK, hashBestChain));
+                        if (nBestHeight > HIGH_BLOCK_INDEX) {
+                            vInv.push_back(CInv(MSG_BLOCK, hashHighBlock));
+                        } else {
+                            vInv.push_back(CInv(MSG_BLOCK, GetLastBlockIndex(pindexBest, false)->GetBlockHash()));
+                        }
+
                         pfrom->PushMessage("inv", vInv);
                         pfrom->hashContinue = 0;
                     }
@@ -3147,17 +3165,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!vRecv.empty())
             vRecv >> pfrom->nStartingHeight;
 
+        if (pfrom->fInbound && addrMe.IsRoutable())
+        {
+            pfrom->addrLocal = addrMe;
+            SeenLocal(addrMe);
+        }
+
         // Disconnect if we connected to ourself
         if (nNonce == nLocalHostNonce && nNonce > 1)
         {
             LogPrintf("connected to self at %s, disconnecting\n", pfrom->addr.ToString());
-            pfrom->fDisconnect = true;
-            return true;
-        }
-
-        if (pfrom->nVersion < 60014)
-        {
-            printf("partner %s using a buggy client %d, disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return true;
         }
@@ -3167,6 +3184,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             pfrom->PushVersion();
 
         pfrom->fClient = !(pfrom->nServices & NODE_NETWORK);
+
+        AddTimeData(pfrom->addr, nTime);
 
         // Change version
         pfrom->PushMessage("verack");
@@ -3202,6 +3221,18 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
         }
 
+        // Ask the first connected node for block updates
+        static int nAskedForBlocks = 0;
+        if (!pfrom->fClient && !pfrom->fOneShot &&
+            (pfrom->nStartingHeight > (nBestHeight - 144)) &&
+            (pfrom->nVersion < NOBLKS_VERSION_START ||
+             pfrom->nVersion >= NOBLKS_VERSION_END) &&
+             (nAskedForBlocks < 1 || vNodes.size() <= 1))
+        {
+            nAskedForBlocks++;
+            PushGetBlocks(pfrom, pindexBest, uint256(0));
+        }
+
         // Relay alerts
         {
             LOCK(cs_mapAlerts);
@@ -3219,6 +3250,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         pfrom->fSuccessfullyConnected = true;
 
         LogPrintf("receive version message: version %d, blocks=%d, us=%s, them=%s, peer=%s\n", pfrom->nVersion, pfrom->nStartingHeight, addrMe.ToString(), addrFrom.ToString(), pfrom->addr.ToString());
+
+
+
+    // Be more aggressive with blockchain download. Send new getblocks() message after connection
+    // to new node if waited longer than MAX_TIME_SINCE_BEST_BLOCK.
+    int64 TimeSinceBestBlock = GetTime() - nTimeBestReceived;
+    if (TimeSinceBestBlock > MAX_TIME_SINCE_BEST_BLOCK) {
+        //LogPrintf("INFO: Waiting %d sec which is too long. Sending GetBlocks(0)\n", TimeSinceBestBlock);
+        PushGetBlocks(pfrom, pindexBest, uint256(0));
+    }
 
         // ppcoin: ask for pending sync-checkpoint if any
         if (!IsInitialBlockDownload())
@@ -3398,13 +3439,17 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         // Send the rest of the chain
         if (pindex)
             pindex = pindex->pnext;
-        int nLimit = 500;
+        int nLimit = 1000;
         LogPrint("net", "getblocks %d to %s limit %d\n", (pindex ? pindex->nHeight : -1), hashStop.ToString(), nLimit);
         for (; pindex; pindex = pindex->pnext)
         {
             if (pindex->GetBlockHash() == hashStop)
             {
                 LogPrint("net", "  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
+                // ppcoin: tell downloading node about the latest block if it's
+                // without risk being rejected due to stake connection check
+                if (hashStop != hashBestChain && pindex->GetBlockTime() + nStakeMinAge > pindexBest->GetBlockTime())
+                    pfrom->PushInventory(CInv(MSG_BLOCK, hashBestChain));
                 break;
             }
             pfrom->PushInventory(CInv(MSG_BLOCK, pindex->GetBlockHash()));
@@ -3552,8 +3597,18 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         LOCK(cs_main);
 
-        if (ProcessBlock(pfrom, &block))
+        if (ProcessBlock(pfrom, &block)) {
             mapAlreadyAskedFor.erase(inv);
+        } else {
+        // Be more aggressive with blockchain download. Send getblocks() message after
+        // an error related to new block download
+            int64 TimeSinceBestBlock = GetTime() - nTimeBestReceived;
+            if (TimeSinceBestBlock > MAX_TIME_SINCE_BEST_BLOCK) {
+                //LogPrintf("INFO: Waiting %d sec which is too long. Sending GetBlocks(0)\n", TimeSinceBestBlock);
+                PushGetBlocks(pfrom, pindexBest, uint256(0));
+            }
+        }
+
         if (block.nDoS) pfrom->Misbehaving(block.nDoS);
     }
 

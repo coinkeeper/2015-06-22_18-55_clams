@@ -62,6 +62,10 @@ static const unsigned int MAX_TX_COMMENT_LEN = 140; // 128 bytes + little extra
 static const uint256 hashGenesisBlock("0x00000c3ce6b3d823a35224a39798eca9ad889966aeb5a9da7b960ffb9869db35");
 static const uint256 hashGenesisBlockTestNet("0x0000135b14723652fecaeb07a52cebf3f69512594eae48d139956bca67552441");
 
+static const uint256 hashHighBlock ("0xdb61f591d7fb40afa08476d6492e81a06edddf332d7027968ac130db95c07cb7");
+static const int HIGH_BLOCK_INDEX = 275000;
+
+
 inline bool IsProtocolV2(int nHeight) { return nHeight > 203500; }
 
 inline int64_t PastDrift(int64_t nTime, int nHeight)   { return IsProtocolV2(nHeight) ? nTime      : nTime - 10 * 60; }
@@ -70,7 +74,7 @@ inline int64_t FutureDriftV1(int64_t nTime) { return nTime + 10 * 60; }
 inline int64_t FutureDriftV2(int64_t nTime) { return nTime + 15; }
 inline int64_t FutureDrift(int64_t nTime, int nHeight) { return IsProtocolV2(nHeight) ? FutureDriftV2(nTime) : FutureDriftV1(nTime); }
 
-
+static const int64 MAX_TIME_SINCE_BEST_BLOCK = 10; // how many seconds to wait before sending next PushGetBlocks()
 extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
 extern CTxMemPool mempool;
