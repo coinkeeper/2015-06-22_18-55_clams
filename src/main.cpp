@@ -2407,10 +2407,10 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
     if (mapOrphanBlocks.count(hash))
         return error("ProcessBlock() : already have block (orphan) %s", hash.ToString());
 
+    CBlockIndex* pPrev = NULL;
     map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(pblock->hashPrevBlock);
-    if (mi == mapBlockIndex.end())
-        return false; 
-    CBlockIndex* pPrev = (*mi).second; 
+    if (mi != mapBlockIndex.end())
+        pPrev = (*mi).second;
 
     // ppcoin: check proof-of-stake
     // Limited duplicity on stake: prevents block flood attack
@@ -2424,7 +2424,7 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
 
     uint256 hashProof;
     // ppcoin: verify hash target and signature of coinstake tx
-    if (pblock->IsProofOfStake())
+    if (pPrev && pblock->IsProofOfStake())
     {
         uint256 hashProofOfStake = 0;
         if (!CheckProofOfStake(pPrev, pblock->vtx[1], pblock->nBits, hashProof, hashProofOfStake))
