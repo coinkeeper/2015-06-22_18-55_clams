@@ -3165,11 +3165,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!vRecv.empty())
             vRecv >> pfrom->nStartingHeight;
 
+        pfrom->addrLocal = addrMe;
         if (pfrom->fInbound && addrMe.IsRoutable())
-        {
-            pfrom->addrLocal = addrMe;
             SeenLocal(addrMe);
-        }
 
         // Disconnect if we connected to ourself
         if (nNonce == nLocalHostNonce && nNonce > 1)
