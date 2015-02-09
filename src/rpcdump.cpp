@@ -353,7 +353,7 @@ Value importwallet(const Array& params, bool fHelp)
                 throw JSONRPCError(RPC_WALLET_ERROR, "Wallet failed to load");
             }
             else
-                LogPrintf("Non fatal errors loading wallet file\n");
+                LogPrintf("Non-fatal errors loading wallet file\n");
     }
 
     // Handle encrypted wallets. Wallets first need to be unlocked before the keys
@@ -372,7 +372,7 @@ Value importwallet(const Array& params, bool fHelp)
             if (strWalletPass.length() > 0)
             {
                 if (!pwalletImport->Unlock(strWalletPass))
-                    throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
+                    throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet you are attempting to import.");
             } else
                 fGotWalletPass = false;
         }
@@ -381,8 +381,8 @@ Value importwallet(const Array& params, bool fHelp)
             throw runtime_error(
                 "importwallet <file> <walletpassword>\n"
                 "Import encrypted wallet from BTC/LTC/DOGE \n\n"
-                "You are attemping to import a encrypted password\n"
-                "The password must be entered to properly import the wallet\n"
+                "You are attempting to import an encrypted wallet\n"
+                "The passphrase must be entered to import the wallet\n"
                 );
     }
 
@@ -426,7 +426,7 @@ Value importwallet(const Array& params, bool fHelp)
     pwalletMain->ScanForWalletTransactions(pindexRescan, true);
     pwalletMain->ReacceptWalletTransactions();
     pwalletMain->MarkDirty();
-    LogPrintf("Rescan Complete\n");
+    LogPrintf("Rescan complete\n");
 
     return Value::null;
 }

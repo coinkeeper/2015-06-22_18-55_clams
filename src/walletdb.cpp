@@ -818,7 +818,7 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
             string strType, strErr;
             if (!ReadKeyValueImport(pwallet, ssKey, ssValue, wss, strType, strErr))
             {
-                 LogPrintf("Reading Keys\n");
+                 LogPrintf("Reading keys\n");
                 // losing keys is considered a catastrophic error, anything else
                 // we assume the user can live with:
                 if (IsKeyType(strType)) {
@@ -837,7 +837,7 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
     }
     catch (...)
     {
-        LogPrintf("Corruption will robinson\n");
+        LogPrintf("Wallet corruption detected\n");
         result = DB_CORRUPT;
     }
 
