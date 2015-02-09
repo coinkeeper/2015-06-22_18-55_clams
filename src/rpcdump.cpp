@@ -328,7 +328,7 @@ Value dumpwallet(const Array& params, bool fHelp)
 
 Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "importwallet <file> [walletpassword]\n"
             "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
