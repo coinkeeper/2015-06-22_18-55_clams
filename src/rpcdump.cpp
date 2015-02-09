@@ -353,7 +353,7 @@ Value importwallet(const Array& params, bool fHelp)
                 throw JSONRPCError(RPC_WALLET_ERROR, "Wallet failed to load");
             }
             else
-                printf("Non fatal errors loading wallet file\n");
+                LogPrintf("Non fatal errors loading wallet file\n");
     }
 
     // Handle encrypted wallets. Wallets first need to be unlocked before the keys
@@ -404,12 +404,12 @@ Value importwallet(const Array& params, bool fHelp)
             if (pwalletImport->GetKey(keyid, key)) {
 
                 if (pwalletMain->HaveKey(keyid)) {
-                     printf("Skipping import of %s (key already present)\n", strAddr.c_str());
+                     LogPrintf("Skipping import of %s (key already present)\n", strAddr);
                      continue;
                 }
 		
                 if(fDebug) 
-                    printf("Importing %s...\n", strAddr.c_str());
+                    LogPrintf("Importing %s...\n", strAddr);
 
                 pwalletMain->AddKey(key);
                 pwalletMain->SetAddressBookName(keyid, strLabel);
@@ -422,11 +422,11 @@ Value importwallet(const Array& params, bool fHelp)
     UnregisterWallet(pwalletImport);
     delete pwalletImport;
 
-    printf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
+    LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
     pwalletMain->ScanForWalletTransactions(pindexRescan, true);
     pwalletMain->ReacceptWalletTransactions();
     pwalletMain->MarkDirty();
-    printf("Rescan Complete\n");
+    LogPrintf("Rescan Complete\n");
 
     return Value::null;
 }
