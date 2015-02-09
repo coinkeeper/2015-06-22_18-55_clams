@@ -359,21 +359,31 @@ Value importwallet(const Array& params, bool fHelp)
     // Handle encrypted wallets. Wallets first need to be unlocked before the keys
     // can be added into your clam wallet. 
     if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
-        SecureString strWalletPass;
-        strWalletPass.reserve(100);
-        strWalletPass = params[1].get_str().c_str();
-        if (strWalletPass.length() > 0)
+        bool fGotWalletPass = true;
+        if (params.size() < 2)
+            fGotWalletPass = false;
+        else
         {
-            if (!pwalletImport->Unlock(strWalletPass))
-                throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
-        } else {
-                    throw runtime_error(
-                        "importwallet <file> <walletpassword>\n"
-                        "Import encrypted wallet from BTC/LTC/DOGE \n\n"
-                        "You are attemping to import a encrypted password\n"
-                        "The password must be entered to properly import the wallet\n"
-                    );
+            // TODO: get rid of this .c_str() by implementing SecureString::operator=(std::string)
+            // Alternately, find a way to make params[0] mlock()'d to begin with.
+            SecureString strWalletPass;
+            strWalletPass.reserve(100);
+            strWalletPass = params[1].get_str().c_str();
+            if (strWalletPass.length() > 0)
+            {
+                if (!pwalletImport->Unlock(strWalletPass))
+                    throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
+            } else
+                fGotWalletPass = false;
         }
+
+        if (!fGotWalletPass)
+            throw runtime_error(
+                "importwallet <file> <walletpassword>\n"
+                "Import encrypted wallet from BTC/LTC/DOGE \n\n"
+                "You are attemping to import a encrypted password\n"
+                "The password must be entered to properly import the wallet\n"
+                );
     }
 
     {
