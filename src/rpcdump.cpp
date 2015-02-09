@@ -386,6 +386,9 @@ Value importwallet(const Array& params, bool fHelp)
                 );
     }
 
+    int nImported = 0;
+    int nSkipped = 0;
+
     {
         LOCK2(cs_main, pwalletMain->cs_wallet);
         LOCK(pwalletImport->cs_wallet);
@@ -404,16 +407,19 @@ Value importwallet(const Array& params, bool fHelp)
             if (pwalletImport->GetKey(keyid, key)) {
 
                 if (pwalletMain->HaveKey(keyid)) {
-                     LogPrintf("Skipping import of %s (key already present)\n", strAddr);
-                     continue;
+                    if (fDebug) 
+                        LogPrintf("Skipping import of %s (key already present)\n", strAddr);
+                    nSkipped++;
+                    continue;
                 }
 		
-                if(fDebug) 
+                if (fDebug) 
                     LogPrintf("Importing %s...\n", strAddr);
 
                 pwalletMain->AddKey(key);
                 pwalletMain->SetAddressBookName(keyid, strLabel);
                 pwalletMain->mapKeyMetadata[keyid].nCreateTime = nTime;
+                nImported++;
             }
         }
     }
@@ -422,12 +428,18 @@ Value importwallet(const Array& params, bool fHelp)
     UnregisterWallet(pwalletImport);
     delete pwalletImport;
 
-    LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
-    pwalletMain->ScanForWalletTransactions(pindexRescan, true);
-    pwalletMain->ReacceptWalletTransactions();
-    pwalletMain->MarkDirty();
-    LogPrintf("Rescan complete\n");
+    LogPrintf("walletimport imported %d and skipped %d key(s)\n", nImported, nSkipped);
+
+    if (nImported)
+    {
+        LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
+        pwalletMain->ScanForWalletTransactions(pindexRescan, true);
+        pwalletMain->ReacceptWalletTransactions();
+        pwalletMain->MarkDirty();
+        LogPrintf("Rescan complete\n");
+    }
+    else
+        LogPrintf("Not rescanning because no new keys were imported\n");
 
     return Value::null;
 }
-
