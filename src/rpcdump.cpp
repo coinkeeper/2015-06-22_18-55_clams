@@ -328,12 +328,17 @@ Value dumpwallet(const Array& params, bool fHelp)
 
 Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
-            "importwallet <file> [walletpassword]\n"
+            "importwallet <file> [walletpassword] [rescan=true]\n"
             "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
             "Password is only required if wallet is encrypted\n"
         );
+
+    // Whether to perform rescan after import
+    bool fRescan = true;
+    if (params.size() > 2)
+        fRescan = params[2].get_bool();
 
     CBlockIndex *pindexRescan = pindexGenesisBlock;
     EnsureWalletIsUnlocked();
@@ -429,15 +434,18 @@ Value importwallet(const Array& params, bool fHelp)
     delete pwalletImport;
 
     LogPrintf("walletimport imported %d and skipped %d key(s)\n", nImported, nSkipped);
+    pwalletMain->MarkDirty();
 
     if (nImported)
-    {
-        LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
-        pwalletMain->ScanForWalletTransactions(pindexRescan, true);
-        pwalletMain->ReacceptWalletTransactions();
-        pwalletMain->MarkDirty();
-        LogPrintf("Rescan complete\n");
-    }
+        if (fRescan)
+        {
+            LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
+            pwalletMain->ScanForWalletTransactions(pindexRescan, true);
+            pwalletMain->ReacceptWalletTransactions();
+            LogPrintf("Rescan complete\n");
+        }
+        else
+            LogPrintf("Not rescanning because user requested that it should be skipped\n");
     else
         LogPrintf("Not rescanning because no new keys were imported\n");
 
