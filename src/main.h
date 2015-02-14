@@ -126,6 +126,8 @@ void UnregisterWallet(CWalletInterface* pwalletIn);
 void UnregisterAllWallets();
 /** Push an updated transaction to all registered wallets */
 void SyncWithWallets(const CTransaction& tx, const CBlock* pblock = NULL, bool fConnect = true);
+/** Inform all registered wallets of a change in stake reward */
+void StakeToWallets(const CScript& script, int64_t nStakeReward, bool fConnect = true);
 /** Ask wallets to resend their transactions */
 void ResendWalletTransactions(bool fForce = false);
 
@@ -1338,6 +1340,7 @@ public:
 class CWalletInterface {
 protected:
     virtual void SyncTransaction(const CTransaction &tx, const CBlock *pblock, bool fConnect) =0;
+    virtual void StakeTransaction(const CScript& script, int64_t nStakeReward, bool fConnect) =0;
     virtual void EraseFromWallet(const uint256 &hash) =0;
     virtual void SetBestChain(const CBlockLocator &locator) =0;
     virtual void UpdatedTransaction(const uint256 &hash) =0;

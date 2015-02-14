@@ -108,6 +108,9 @@ public:
     MasterKeyMap mapMasterKeys;
     unsigned int nMasterKeyMaxID;
 
+    std::map<std::string, int64_t> mapAddressRewards; // a running total of staking rewards collected per address
+    bool fAddressRewardsReady;                        // whether we are keeping the running total yet or not
+
     CWallet()
     {
         nWalletVersion = FEATURE_BASE;
@@ -116,6 +119,7 @@ public:
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
+        fAddressRewardsReady = false;
     }
     CWallet(std::string strWalletFileIn)
     {
@@ -126,6 +130,7 @@ public:
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
+        fAddressRewardsReady = false;
     }
 
     std::map<uint256, CWalletTx> mapWallet;
@@ -188,6 +193,7 @@ public:
     void MarkDirty();
     bool AddToWallet(const CWalletTx& wtxIn);
     void SyncTransaction(const CTransaction& tx, const CBlock* pblock, bool fConnect = true);
+    void StakeTransaction(const CScript& script, int64_t nStakeReward, bool fConnect = true);
     bool AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlock* pblock, bool fUpdate);
     void EraseFromWallet(const uint256 &hash);
     void ClearOrphans();
@@ -327,6 +333,7 @@ public:
 
     void FixSpentCoins(int& nMismatchSpent, int64_t& nBalanceInQuestion, bool fCheckOnly = false);
     void DisableTransaction(const CTransaction &tx);
+    void SumStakingRewards();
 
     /** Address book entry changed.
      * @note called with lock cs_wallet held.
