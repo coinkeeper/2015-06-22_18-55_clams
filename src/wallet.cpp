@@ -416,14 +416,19 @@ void CWallet::WalletUpdateSpent(const CTransaction &tx, bool fBlock)
             map<uint256, CWalletTx>::iterator mi = mapWallet.find(hash);
             CWalletTx& wtx = (*mi).second;
 
+            bool fMine = false;
             BOOST_FOREACH(const CTxOut& txout, tx.vout)
             {
                 if (IsMine(txout))
                 {
                     wtx.MarkUnspent(&txout - &tx.vout[0]);
-                    wtx.WriteToDisk();
-                    NotifyTransactionChanged(this, hash, CT_UPDATED);
+                    fMine = true;
                 }
+            }
+
+            if (fMine) {
+                wtx.WriteToDisk();
+                NotifyTransactionChanged(this, hash, CT_UPDATED);
             }
         }
 
