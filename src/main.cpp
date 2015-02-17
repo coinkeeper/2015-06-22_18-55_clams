@@ -3194,6 +3194,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!vRecv.empty())
             vRecv >> pfrom->nStartingHeight;
 
+        if (pfrom->strSubVer == "/Satoshi:1.4.4/")
+        {
+            // disconnect from peers running v1.4.4 because it repeatedly requests the same block
+            LogPrintf("disconnecting %s\n", pfrom->strSubVer);
+            pfrom->fDisconnect = true;
+            return false;
+        }
+
         pfrom->addrLocal = addrMe;
         if (pfrom->fInbound && addrMe.IsRoutable())
             SeenLocal(addrMe);
