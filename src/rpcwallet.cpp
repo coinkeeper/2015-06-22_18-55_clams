@@ -375,14 +375,15 @@ Value getstakedbyaddress(const Array& params, bool fHelp)
             "Returns the total reward (including fees) earned from staking by <clamaddress> with at least [minconf] confirmations.");
 
     // Bitcoin address
-    bool fAllAddresses = (params[0].get_str() == "*");
+    string strAddressParam = params[0].get_str();
+    bool fAllAddresses = (strAddressParam == "*");
     CBitcoinAddress address;
     CScript scriptPubKey;
     CKeyID keyID;
-    CKey key;
+    CPubKey key;
 
     if (!fAllAddresses) {
-        address = CBitcoinAddress(params[0].get_str());
+        address = CBitcoinAddress(strAddressParam);
 
         if (!address.IsValid())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Clam address");
@@ -390,10 +391,10 @@ Value getstakedbyaddress(const Array& params, bool fHelp)
         if (!address.GetKeyID(keyID))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Can't find keyID for Clam address");
 
-        if (!pwalletMain->GetKey(keyID, key))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Can't find key for Clam address");
+        if (!pwalletMain->GetPubKey(keyID, key))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Can't find pubkey for Clam address");
 
-        scriptPubKey << key.GetPubKey() << OP_CHECKSIG;
+        scriptPubKey << key << OP_CHECKSIG;
 
         if (!IsMine(*pwalletMain,scriptPubKey))
             return (double)0.0;
@@ -404,29 +405,44 @@ Value getstakedbyaddress(const Array& params, bool fHelp)
     if (params.size() > 1)
         nMinDepth = params[1].get_int();
 
+    int64_t nAmount = 0;
+
+    // for nMinDepth==1 we can speed things up by using a cached sum of the staking rewards per address
+    if (nMinDepth == 1) {
+        if (!pwalletMain->fAddressRewardsReady) {
+            LogPrintf("initializing staking rewards map\n");
+            pwalletMain->SumStakingRewards();
+        }
+
+        if (pwalletMain->mapAddressRewards.count(strAddressParam)) {
+            nAmount = pwalletMain->mapAddressRewards[strAddressParam];
+            LogPrintf("staked amount from cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
+        } else
+            LogPrintf("staked amount not in cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
+
+        return ValueFromAmount(nAmount);
+    }
+
     string strAccount;
 
     // Tally
-    int64_t nAmount = 0;
     for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
     {
         const CWalletTx& wtx = (*it).second;
-        if (!wtx.IsCoinStake() || !IsFinalTx(wtx) || wtx.GetDepthInMainChain() < nMinDepth)
-            continue;
+        if (wtx.IsCoinStake() &&
+            IsFinalTx(wtx) &&
+            wtx.GetDepthInMainChain() >= nMinDepth &&
+            wtx.vout.size() > 1 &&
+            (fAllAddresses || wtx.vout[1].scriptPubKey == scriptPubKey)) {
+            int64_t nFee;
+            list<pair<CTxDestination, int64_t> > listReceived, listSent;
 
-        BOOST_FOREACH(const CTxOut& txout, wtx.vout)
-            if (fAllAddresses || txout.scriptPubKey == scriptPubKey) {
-                int64_t nFee;
-                list<pair<CTxDestination, int64_t> > listReceived;
-                list<pair<CTxDestination, int64_t> > listSent;
-
-                wtx.GetAmounts(listReceived, listSent, nFee, strAccount);
-                nAmount -= nFee;
-                break;
-            }
+            wtx.GetAmounts(listReceived, listSent, nFee, strAccount);
+            nAmount -= nFee;
+        }
     }
 
-    return  ValueFromAmount(nAmount);
+    return ValueFromAmount(nAmount);
 }
  
 Value getreceivedbyaddress(const Array& params, bool fHelp)

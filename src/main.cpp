@@ -99,6 +99,8 @@ namespace {
 struct CMainSignals {
     // Notifies listeners of updated transaction data (passing hash, transaction, and optionally the block it is found in.
     boost::signals2::signal<void (const CTransaction &, const CBlock *, bool)> SyncTransaction;
+    // Notifies listeners of updated staking reward (passing receiving script, reward amount, and whether the reward is being added or taken away).
+    boost::signals2::signal<void (const CScript &, int64_t, bool)> StakeTransaction;
     // Notifies listeners of an erased transaction (currently disabled, requires transaction replacement).
     boost::signals2::signal<void (const uint256 &)> EraseTransaction;
     // Notifies listeners of an updated transaction without new data (for now: a coinbase potentially becoming visible).
@@ -114,6 +116,7 @@ struct CMainSignals {
 
 void RegisterWallet(CWalletInterface* pwalletIn) {
     g_signals.SyncTransaction.connect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3));
+    g_signals.StakeTransaction.connect(boost::bind(&CWalletInterface::StakeTransaction, pwalletIn, _1, _2, _3));
     g_signals.EraseTransaction.connect(boost::bind(&CWalletInterface::EraseFromWallet, pwalletIn, _1));
     g_signals.UpdatedTransaction.connect(boost::bind(&CWalletInterface::UpdatedTransaction, pwalletIn, _1));
     g_signals.SetBestChain.connect(boost::bind(&CWalletInterface::SetBestChain, pwalletIn, _1));
@@ -128,6 +131,7 @@ void UnregisterWallet(CWalletInterface* pwalletIn) {
     g_signals.UpdatedTransaction.disconnect(boost::bind(&CWalletInterface::UpdatedTransaction, pwalletIn, _1));
     g_signals.EraseTransaction.disconnect(boost::bind(&CWalletInterface::EraseFromWallet, pwalletIn, _1));
     g_signals.SyncTransaction.disconnect(boost::bind(&CWalletInterface::SyncTransaction, pwalletIn, _1, _2, _3));
+    g_signals.StakeTransaction.disconnect(boost::bind(&CWalletInterface::StakeTransaction, pwalletIn, _1, _2, _3));
 }
 
 void UnregisterAllWallets() {
@@ -137,10 +141,15 @@ void UnregisterAllWallets() {
     g_signals.UpdatedTransaction.disconnect_all_slots();
     g_signals.EraseTransaction.disconnect_all_slots();
     g_signals.SyncTransaction.disconnect_all_slots();
+    g_signals.StakeTransaction.disconnect_all_slots();
 }
 
 void SyncWithWallets(const CTransaction &tx, const CBlock *pblock, bool fConnect) {
     g_signals.SyncTransaction(tx, pblock, fConnect);
+}
+
+void StakeToWallets(const CScript& script, int64_t nStakeReward, bool fConnect) {
+    g_signals.StakeTransaction(script, nStakeReward, fConnect);
 }
 
 void ResendWalletTransactions(bool fForce) {
@@ -1590,6 +1599,21 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs, map<uint256, CTx
 
 bool CBlock::DisconnectBlock(CTxDB& txdb, CBlockIndex* pindex)
 {
+    int64_t nStakeReward = 0;
+    
+    if (IsProofOfStake()) {
+        // Calculate the stake reward
+        MapPrevTx mapInputs;
+        map<uint256, CTxIndex> mapUnused;
+        bool fInvalid = false;
+
+        if (vtx[1].FetchInputs(txdb, mapUnused, false, false, mapInputs, fInvalid)) {
+            nStakeReward = vtx[1].GetValueOut() - vtx[1].GetValueIn(mapInputs);
+            LogPrintf("out %s - in %s = reward %s\n", FormatMoney(vtx[1].GetValueOut()), FormatMoney(vtx[1].GetValueIn(mapInputs)), FormatMoney(nStakeReward));
+        } else
+            LogPrintf("FetchInputs failed\n");
+    }
+        
     // Disconnect in reverse order
     for (int i = vtx.size()-1; i >= 0; i--)
         if (!vtx[i].DisconnectInputs(txdb))
@@ -1608,6 +1632,9 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CBlockIndex* pindex)
     // ppcoin: clean up wallet after disconnecting coinstake
     BOOST_FOREACH(CTransaction& tx, vtx)
         SyncWithWallets(tx, this, false);
+
+    if (nStakeReward)
+        StakeToWallets(vtx[1].vout[1].scriptPubKey, -nStakeReward, false);
 
     return true;
 }
@@ -1735,7 +1762,7 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
         if (!vtx[1].GetCoinAge(txdb, nCoinAge))
             return error("ConnectBlock() : %s unable to get coin age for coinstake", vtx[1].GetHash().ToString());
 
-	  int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindexPrev, nCoinAge, nFees);
+        int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindexPrev, nCoinAge, nFees);
 
         if (nStakeReward > nCalculatedStakeReward)
             return DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
@@ -1775,6 +1802,8 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
     // Watch for transactions paying to me
     BOOST_FOREACH(CTransaction& tx, vtx)
         SyncWithWallets(tx, this);
+
+    StakeToWallets(vtx[1].vout[1].scriptPubKey, nStakeReward);
 
     return true;
 }

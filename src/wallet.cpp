@@ -442,6 +442,8 @@ void CWallet::MarkDirty()
         BOOST_FOREACH(PAIRTYPE(const uint256, CWalletTx)& item, mapWallet)
             item.second.MarkDirty();
     }
+
+    fAddressRewardsReady = false;
 }
 
 bool CWallet::AddToWallet(const CWalletTx& wtxIn)
@@ -612,6 +614,37 @@ void CWallet::SyncTransaction(const CTransaction& tx, const CBlock* pblock, bool
     }
 
     AddToWalletIfInvolvingMe(tx, pblock, true);
+}
+
+void CWallet::StakeTransaction(const CScript& script, int64_t nStakeReward, bool fConnect) {
+    if (!fAddressRewardsReady) {
+        LogPrintf("not tracking stake rewards yet\n");
+        return;
+    }
+
+    if (!fConnect)
+        LogPrintf("stake tx disconnecting %s\n", FormatMoney(nStakeReward));
+    else
+        LogPrintf("stake tx connecting    %s\n", FormatMoney(nStakeReward));
+
+    CTxDestination address;
+    if (!ExtractDestination(script, address)) {
+        LogPrintf("can't extract destination\n");
+        return;
+    }
+
+    std::string addr(CBitcoinAddress(address).ToString());
+    if (!::IsMine(*this, address)) {
+        LogPrintf("address %s is not mine\n", addr);
+        return;
+    }
+
+    mapAddressRewards["*"] += nStakeReward;
+    mapAddressRewards[addr] += nStakeReward;
+    LogPrintf("stake %s for destination: %s; global up to %s, address up to %s\n",
+              FormatMoney(nStakeReward), addr,
+              FormatMoney(mapAddressRewards["*"]),
+              FormatMoney(mapAddressRewards[addr]));
 }
 
 void CWallet::EraseFromWallet(const uint256 &hash)
@@ -2659,6 +2692,49 @@ void CWallet::DisableTransaction(const CTransaction &tx)
             }
         }
     }
+}
+
+void CWallet::SumStakingRewards()
+{
+    mapAddressRewards.clear();
+
+    int nWalletTx = 0, nStakeTx = 0;
+
+    string strAccount;
+    int64_t nFee;
+    CTxDestination address;
+    list<pair<CTxDestination, int64_t> > listReceived, listSent;
+
+    typedef std::map<uint256, CWalletTx> TMapWallet;
+    BOOST_FOREACH(TMapWallet::value_type& entry, mapWallet)
+    {
+        const CWalletTx& wtx = entry.second;
+        if (wtx.IsCoinStake() &&
+            IsFinalTx(wtx) &&
+            wtx.GetDepthInMainChain() > 0 &&
+            wtx.vout.size() > 1) {
+
+            if (!ExtractDestination(wtx.vout[1].scriptPubKey, address)) {
+                LogPrintf("can't extract destination\n");
+                continue;
+            }
+
+            std::string addr(CBitcoinAddress(address).ToString());
+            if (!::IsMine(*this, address)) {
+                LogPrintf("address %s is not mine\n", addr);
+                continue;
+            }
+
+            wtx.GetAmounts(listReceived, listSent, nFee, strAccount);
+            mapAddressRewards["*"] -= nFee;
+            mapAddressRewards[addr] -= nFee;
+            nStakeTx++;
+        }
+        
+        nWalletTx++;
+    }
+    LogPrintf("CWallet::SumStakingRewards() found %d of %d tx to be stakes\n", nStakeTx, nWalletTx);
+    fAddressRewardsReady = true;
 }
 
 bool CReserveKey::GetReservedKey(CPubKey& pubkey)
