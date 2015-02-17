@@ -78,6 +78,7 @@ CTxDB::CTxDB(const char* pszMode)
     }
 
     bool fCreate = strchr(pszMode, 'c');
+    bool fReindex = strchr(pszMode, 'i');
 
     options = GetOptions();
     options.create_if_missing = fCreate;
@@ -85,6 +86,25 @@ CTxDB::CTxDB(const char* pszMode)
 
     init_blockindex(options); // Init directory
     pdb = txdb;
+
+    if(fReindex)
+    {
+	LogPrintf("Reindex: removing previous txleveldb directory");
+            
+	// Leveldb instance destruction
+        delete txdb;
+        txdb = pdb = NULL;
+        delete activeBatch;
+        activeBatch = NULL;
+            
+	init_blockindex(options, true); // Remove directory and create new database
+    	pdb = txdb;
+
+        bool fTmp = fReadOnly;
+        fReadOnly = false;
+        WriteVersion(DATABASE_VERSION); // Save transaction index version
+        fReadOnly = fTmp;
+    }
 
     if (Exists(string("version")))
     {
@@ -348,7 +368,12 @@ bool CTxDB::LoadBlockIndex()
         if (strType != "blockindex")
             break;
         CDiskBlockIndex diskindex;
-        ssValue >> diskindex;
+        try {
+            ssValue >> diskindex;
+        }
+        catch (std::ios_base::failure &err) {
+            return error("LoadBlockIndex() : unable to unserialize record : try running with -reindex");
+        }
 
         uint256 blockHash = diskindex.GetBlockHash();
 
@@ -361,6 +386,8 @@ bool CTxDB::LoadBlockIndex()
         pindexNew->nHeight        = diskindex.nHeight;
         pindexNew->nMint          = diskindex.nMint;
         pindexNew->nMoneySupply   = diskindex.nMoneySupply;
+        pindexNew->nDigsupply     = diskindex.nDigsupply;
+        pindexNew->nStakeSupply   = diskindex.nStakeSupply;
         pindexNew->nFlags         = diskindex.nFlags;
         pindexNew->nStakeModifier = diskindex.nStakeModifier;
         pindexNew->prevoutStake   = diskindex.prevoutStake;

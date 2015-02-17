@@ -216,7 +216,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(const QString &clamspeech, c
 
        	std::string strCLAMSpeech = clamspeech.toStdString();
         if (!strCLAMSpeech.empty())
-            strCLAMSpeech = "text:" + strCLAMSpeech;
+            strCLAMSpeech = strCLAMSpeech;
 
         bool fCreated = wallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, strCLAMSpeech, coinControl);
  	if(!fCreated)
@@ -497,4 +497,9 @@ void WalletModel::unlockCoin(COutPoint& output)
 void WalletModel::listLockedCoins(std::vector<COutPoint>& vOutpts)
 {
     return;
+}
+
+void WalletModel::clearOrphans()
+{
+    wallet->ClearOrphans();
 }

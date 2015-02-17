@@ -5,6 +5,16 @@
 #include <QObject>
 #include <QMessageBox>
 
+// UI extern settings defined in optionsmodel.cpp
+extern bool fUseClamTheme;
+extern bool fUseClamSpeech;
+extern bool fUseClamSpeechRandom;
+extern int nClamSpeechIndex;
+extern int nStyleSheetVersion;
+
+const int CURRENT_STYLESHEET_VERSION = 1;
+
+
 class SendCoinsRecipient;
 
 QT_BEGIN_NAMESPACE
@@ -20,6 +30,9 @@ QT_END_NAMESPACE
  */
 namespace GUIUtil
 {
+    // Convert path to DOS 8.3 format
+    QString toDOSPathFormat(const QString &filename);
+
     // Create human-readable string from date
     QString dateTimeStr(const QDateTime &datetime);
     QString dateTimeStr(qint64 nTime);
@@ -115,8 +128,6 @@ namespace GUIUtil
         QString coreOptions;
         QString uiOptions;
     };
-
-    void SetClamThemeQSS(QApplication& app);
 
 } // namespace GUIUtil
 

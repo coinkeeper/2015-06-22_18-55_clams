@@ -10,8 +10,13 @@
 #include "ui_interface.h"
 #include "uint256.h"
 #include "version.h"
+#include "clamspeech.h"
 
 #include <algorithm>
+//For clamspeech until beter solution derivied.
+#include <iostream>
+#include <iterator>
+#include <fstream>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -446,7 +451,7 @@ long hex2long(const char* hexString)
 
     while (*hexString && ret >= 0) 
     {
-        ret = (ret << 4) | hextable[*hexString++];
+        ret = (ret << 4) | hextable[int(*hexString++)];
     }
 
     return ret; 
@@ -1111,6 +1116,109 @@ void CreatePidFile(const boost::filesystem::path &path, pid_t pid)
 }
 #endif
 
+boost::filesystem::path GetClamSpeechFile()
+{
+    boost::filesystem::path pathClamSpeechFile(GetArg("-clamspeech", "clamspeech.txt"));
+    if (!pathClamSpeechFile.is_complete()) pathClamSpeechFile = GetDataDir() / pathClamSpeechFile;
+    return pathClamSpeechFile;
+}
+
+boost::filesystem::path GetQuoteFile()
+{
+    boost::filesystem::path pathQuoteFile(GetArg("-quotes", "quotes.txt"));
+    if (!pathQuoteFile.is_complete()) pathQuoteFile = GetDataDir() / pathQuoteFile;
+    return pathQuoteFile;
+}
+
+bool LoadClamSpeech()
+{
+
+    if (clamSpeechList.empty())
+	CSLoad();
+
+    // If file doesn't exist, create it using the clamSpeech quote list
+    if (!boost::filesystem::exists(GetClamSpeechFile())) {
+        FILE* file = fopen(GetClamSpeechFile().string().c_str(), "w");
+        if (file)
+        {
+	    for(std::vector<std::string>::iterator it = clamSpeechList.begin(); it != clamSpeechList.end(); it++)
+            {
+                fprintf(file, "%s\n", it->c_str());
+            }
+            fclose(file);         
+        }   
+    }
+
+    clamSpeech.clear();
+    std::ifstream speechfile(GetClamSpeechFile().string().c_str());
+
+    if(!speechfile) //Always test the file open.
+        return false;
+
+    string line;
+    while (getline(speechfile, line, '\n'))
+    {
+        clamSpeech.push_back (line);
+    }
+    
+    return true;   
+}
+
+string GetRandomClamSpeech() {
+    if(clamSpeech.empty()) {
+        if(!LoadClamSpeech()) 
+            return "This is a deafult quote that gets added in the event of all else failing";
+    } 
+    int index = rand() % clamSpeech.size();
+    return clamSpeech[index];
+}
+
+bool SaveClamSpeech() 
+{
+    if (boost::filesystem::exists(GetClamSpeechFile())) {
+        FILE* file = fopen(GetClamSpeechFile().string().c_str(), "w");
+        if (file)
+        {
+        for(std::vector<std::string>::iterator it = clamSpeech.begin(); it != clamSpeech.end(); it++)
+            {
+                fprintf(file, "%s\n", it->c_str());
+            }
+            fclose(file);         
+        }   
+    } else {
+        return false;
+    }
+    return true; 
+}
+
+bool LoadQuoteList()
+{
+
+    // If file doesn't exist, create it using the clamSpeech quote list
+    if (!boost::filesystem::exists(GetQuoteFile())) {
+        FILE* file = fopen(GetQuoteFile().string().c_str(), "w");
+        if (file)
+        {
+            fprintf(file, "### Personal quote file is empty. Add your own personal quotes here\n");
+            fclose(file);         
+        }   
+    }
+
+    quoteList.clear();
+    std::ifstream quotefile(GetQuoteFile().string().c_str());
+
+    if(!quotefile) //Always test the file open.
+        return false;
+
+    string line;
+    while (getline(quotefile, line, '\n'))
+    {
+        quoteList.push_back (line);
+    }
+    return true;
+}
+
+
 bool RenameOver(boost::filesystem::path src, boost::filesystem::path dest)
 {
 #ifdef WIN32
@@ -1128,7 +1236,13 @@ void FileCommit(FILE *fileout)
 #ifdef WIN32
     _commit(_fileno(fileout));
 #else
+    #if defined(__linux__) || defined(__NetBSD__)
+    fdatasync(fileno(fileout));
+    #elif defined(__APPLE__) && defined(F_FULLFSYNC)
+    fcntl(fileno(fileout), F_FULLFSYNC, 0);
+    #else
     fsync(fileno(fileout));
+    #endif
 #endif
 }
 
@@ -1189,31 +1303,6 @@ void seed_insecure_rand(bool fDeterministic)
     }
 }
 
-string FormatVersion(int nVersion)
-{
-    if (nVersion%100 == 0)
-        return strprintf("%d.%d.%d", nVersion/1000000, (nVersion/10000)%100, (nVersion/100)%100);
-    else
-        return strprintf("%d.%d.%d.%d", nVersion/1000000, (nVersion/10000)%100, (nVersion/100)%100, nVersion%100);
-}
-
-string FormatFullVersion()
-{
-    return CLIENT_BUILD;
-}
-
-// Format the subversion field according to BIP 14 spec (https://en.bitcoin.it/wiki/BIP_0014)
-std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments)
-{
-    std::ostringstream ss;
-    ss << "/";
-    ss << name << ":" << FormatVersion(nClientVersion);
-    if (!comments.empty())
-        ss << "(" << boost::algorithm::join(comments, "; ") << ")";
-    ss << "/";
-    return ss.str();
-}
-
 #ifdef WIN32
 boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate)
 {
@@ -1271,5 +1360,3 @@ std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime)
     ss << boost::posix_time::from_time_t(nTime);
     return ss.str();
 }
-
-

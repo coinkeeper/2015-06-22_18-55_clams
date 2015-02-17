@@ -107,6 +107,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddednodeinfo", 0 },
     { "sendtoaddress", 1 },
     { "settxfee", 0 },
+    { "getstakedbyaddress", 1 },
     { "getreceivedbyaddress", 1 },
     { "getreceivedbyaccount", 1 },
     { "listreceivedbyaddress", 0 },
@@ -124,6 +125,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendfrom", 3 },
     { "listtransactions", 1 },
     { "listtransactions", 2 },
+    { "listbalances", 0 },
+    { "listbalances", 1 },
+    { "listbalances", 2 },
     { "listaccounts", 0 },
     { "walletpassphrase", 1 },
     { "walletpassphrase", 2 },
@@ -143,6 +147,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listunspent", 0 },
     { "listunspent", 1 },
     { "listunspent", 2 },
+    { "listunspent", 3 },
     { "getrawtransaction", 1 },
     { "createrawtransaction", 0 },
     { "createrawtransaction", 1 },
@@ -150,6 +155,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "signrawtransaction", 2 },
     { "keypoolrefill", 0 },
     { "importprivkey", 2 },
+    { "importwallet", 2 },
+    { "dumpbootstrap", 1 },
+    { "validateoutputs", 0 },
 };
 
 class CRPCConvertTable

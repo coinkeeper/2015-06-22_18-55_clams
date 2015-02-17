@@ -110,7 +110,8 @@ Value importprivkey(const Array& params, bool fHelp)
     if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "importprivkey <clamprivkey> [label] [rescan=true]\n"
-            "Adds a private key (as returned by dumpprivkey) to your wallet.");
+            "Adds a private key (as returned by dumpprivkey) to your wallet.\n"
+	    "Accepts CLAM, BTC, LTC and DOGE private keys\n");
 
     string strSecret = params[0].get_str();
     string strLabel = "";
@@ -327,12 +328,17 @@ Value dumpwallet(const Array& params, bool fHelp)
 
 Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
-            "importwallet <file> [walletpassword]\n"
+            "importwallet <file> [walletpassword] [rescan=true]\n"
             "Import wallet.dat from BTC/LTC/DOGE/CLAM \n"
             "Password is only required if wallet is encrypted\n"
         );
+
+    // Whether to perform rescan after import
+    bool fRescan = true;
+    if (params.size() > 2)
+        fRescan = params[2].get_bool();
 
     CBlockIndex *pindexRescan = pindexGenesisBlock;
     EnsureWalletIsUnlocked();
@@ -352,28 +358,41 @@ Value importwallet(const Array& params, bool fHelp)
                 throw JSONRPCError(RPC_WALLET_ERROR, "Wallet failed to load");
             }
             else
-                printf("Non fatal errors loading wallet file\n");
+                LogPrintf("Non-fatal errors loading wallet file\n");
     }
 
     // Handle encrypted wallets. Wallets first need to be unlocked before the keys
     // can be added into your clam wallet. 
     if (pwalletImport->IsCrypted() && pwalletImport->IsLocked()) {
-        SecureString strWalletPass;
-        strWalletPass.reserve(100);
-        strWalletPass = params[1].get_str().c_str();
-        if (strWalletPass.length() > 0)
+        bool fGotWalletPass = true;
+        if (params.size() < 2)
+            fGotWalletPass = false;
+        else
         {
-            if (!pwalletImport->Unlock(strWalletPass))
-                throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet your attempting to import.");
-        } else {
-                    throw runtime_error(
-                        "importwallet <file> <walletpassword>\n"
-                        "Import encrypted wallet from BTC/LTC/DOGE \n\n"
-                        "You are attemping to import a encrypted password\n"
-                        "The password must be entered to properly import the wallet\n"
-                    );
+            // TODO: get rid of this .c_str() by implementing SecureString::operator=(std::string)
+            // Alternately, find a way to make params[0] mlock()'d to begin with.
+            SecureString strWalletPass;
+            strWalletPass.reserve(100);
+            strWalletPass = params[1].get_str().c_str();
+            if (strWalletPass.length() > 0)
+            {
+                if (!pwalletImport->Unlock(strWalletPass))
+                    throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect for the wallet you are attempting to import.");
+            } else
+                fGotWalletPass = false;
         }
+
+        if (!fGotWalletPass)
+            throw runtime_error(
+                "importwallet <file> <walletpassword>\n"
+                "Import encrypted wallet from BTC/LTC/DOGE \n\n"
+                "You are attempting to import an encrypted wallet\n"
+                "The passphrase must be entered to import the wallet\n"
+                );
     }
+
+    int nImported = 0;
+    int nSkipped = 0;
 
     {
         LOCK2(cs_main, pwalletMain->cs_wallet);
@@ -393,16 +412,19 @@ Value importwallet(const Array& params, bool fHelp)
             if (pwalletImport->GetKey(keyid, key)) {
 
                 if (pwalletMain->HaveKey(keyid)) {
-                     printf("Skipping import of %s (key already present)\n", strAddr.c_str());
-                     continue;
+                    if (fDebug) 
+                        LogPrintf("Skipping import of %s (key already present)\n", strAddr);
+                    nSkipped++;
+                    continue;
                 }
 		
-                if(fDebug) 
-                    printf("Importing %s...\n", strAddr.c_str());
+                if (fDebug) 
+                    LogPrintf("Importing %s...\n", strAddr);
 
                 pwalletMain->AddKey(key);
                 pwalletMain->SetAddressBookName(keyid, strLabel);
                 pwalletMain->mapKeyMetadata[keyid].nCreateTime = nTime;
+                nImported++;
             }
         }
     }
@@ -411,12 +433,21 @@ Value importwallet(const Array& params, bool fHelp)
     UnregisterWallet(pwalletImport);
     delete pwalletImport;
 
-    printf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
-    pwalletMain->ScanForWalletTransactions(pindexRescan, true);
-    pwalletMain->ReacceptWalletTransactions();
+    LogPrintf("walletimport imported %d and skipped %d key(s)\n", nImported, nSkipped);
     pwalletMain->MarkDirty();
-    printf("Rescan Complete\n");
+
+    if (nImported)
+        if (fRescan)
+        {
+            LogPrintf("Searching last %i blocks (from block %i) for dug Clams...\n", pindexBest->nHeight - pindexRescan->nHeight, pindexRescan->nHeight);
+            pwalletMain->ScanForWalletTransactions(pindexRescan, true);
+            pwalletMain->ReacceptWalletTransactions();
+            LogPrintf("Rescan complete\n");
+        }
+        else
+            LogPrintf("Not rescanning because user requested that it should be skipped\n");
+    else
+        LogPrintf("Not rescanning because no new keys were imported\n");
 
     return Value::null;
 }
-

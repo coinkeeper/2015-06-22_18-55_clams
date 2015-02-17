@@ -37,8 +37,9 @@
 #include "macdockiconhandler.h"
 #endif
 
-#include <QMenuBar>
+#include <QDebug>
 #include <QMenu>
+#include <QMenuBar>
 #include <QIcon>
 #include <QVBoxLayout>
 #include <QToolBar>
@@ -58,6 +59,8 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QInputDialog>
+#include <QPushButton>
+#include <QSettings>
 
 #include <iostream>
 
@@ -82,36 +85,36 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     prevBlocks(0),
     nWeight(0)
 {
+    setVisible( false );
+
+    updateStyle();
+
     resize(850+95, 550);
-    setWindowTitle(tr("Clam") + " - " + tr("Wallet"));
+    setWindowTitle(tr("Clam Wallet"));
 #ifndef Q_OS_MAC
     qApp->setWindowIcon(QIcon(":icons/bitcoin"));
     setWindowIcon(QIcon(":icons/bitcoin"));
 #else
-    //setUnifiedTitleAndToolBarOnMac(true);
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
+    MacDockIconHandler::instance()->setIcon(QIcon(":icons/bitcoin"));
 #endif
+
+
     // Accept D&D of URIs
     setAcceptDrops(true);
 
-    // Create actions for the toolbar, menu bar and tray/dock icon
+    // Create actions and ui objects
     createActions();
-
-    // Create application menu bar
     createMenuBar();
-
-    // Create the toolbars
     createToolBars();
-
-    // Create the tray icon (or setup the dock icon)
     createTrayIcon();
 
     // Create tabs
     overviewPage = new OverviewPage();
     rpcConsole = new RPCConsole(this);
     transactionsPage = new QWidget(this);
-    QVBoxLayout *vbox = new QVBoxLayout();
     transactionView = new TransactionView(this);
+    QVBoxLayout *vbox = new QVBoxLayout();
     vbox->addWidget(transactionView);
     transactionsPage->setLayout(vbox);
 
@@ -128,19 +131,14 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     centralStackedWidget->addWidget(receiveCoinsPage);
     centralStackedWidget->addWidget(sendCoinsPage);
     centralStackedWidget->addWidget(rpcConsole);
-    // ! do not add options page, it gets put here on the fly
+    // ! do not add options page, it gets popped on/off on the fly
 
     QWidget *centralWidget = new QWidget();
     QVBoxLayout *centralLayout = new QVBoxLayout(centralWidget);
-#ifndef Q_OS_MAC
-    centralLayout->addWidget(appMenuBar);
-#endif
+    centralLayout->setContentsMargins(0,0,0,0);
     centralLayout->addWidget(centralStackedWidget);
 
     setCentralWidget(centralWidget);
-
-    // Create status bar
-    statusBar();
 
     // Status bar notification icons
     QWidget *frameBlocks = new QWidget();
@@ -183,17 +181,17 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     progressBar->setAlignment(Qt::AlignCenter);
     progressBar->setVisible(false);
 
-    if (!fUseClamTheme)
-    {
-        // Override style sheet for progress bar for styles that have a segmented progress bar,
-        // as they make the text unreadable (workaround for issue #1071)
-        // See https://qt-project.org/doc/qt-4.8/gallery.html
-        QString curStyle = qApp->style()->metaObject()->className();
-        if(curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle")
-        {
-            progressBar->setStyleSheet("QProgressBar { background-color: #e8e8e8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF8000, stop: 1 orange); border-radius: 7px; margin: 0px; }");
-        }
-    }
+//    if (!fUseClamTheme)
+//    {
+//        // Override style sheet for progress bar for styles that have a segmented progress bar,
+//        // as they make the text unreadable (workaround for issue #1071)
+//        // See https://qt-project.org/doc/qt-4.8/gallery.html
+//        QString curStyle = qApp->style()->metaObject()->className();
+//        if(curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle")
+//        {
+//            progressBar->setStyleSheet("QProgressBar { background-color: #e8e8e8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF8000, stop: 1 orange); border-radius: 7px; margin: 0px; }");
+//        }
+//    }
 
     statusBar()->addWidget(progressBarLabel);
     statusBar()->addWidget(progressBar);
@@ -223,69 +221,50 @@ BitcoinGUI::~BitcoinGUI()
     if(trayIcon) // Hide tray icon, as deleting will let it linger until quit (on Ubuntu)
         trayIcon->hide();
 #ifdef Q_OS_MAC
-    delete appMenuBar;
+    //delete appMenuBar;
 #endif
 }
 
 void BitcoinGUI::createActions()
 {
-    QActionGroup *tabGroup = new QActionGroup(this);
+    tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(QIcon(":/icons/overview"), tr("&Dashboard"), this);
+    overviewAction = new QAction(QIcon(":/icons/overview"), tr("&Dashboard"), tabGroup);
     overviewAction->setToolTip(tr("Show general overview of wallet"));
-    overviewAction->setCheckable(true);
     overviewAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_1));
-    tabGroup->addAction(overviewAction);
 
-    receiveCoinsAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Receive"), this);
+    receiveCoinsAction = new QAction(QIcon(":/icons/receiving_addresses"), tr("&Receive"), tabGroup);
     receiveCoinsAction->setToolTip(tr("Show the list of addresses for receiving payments"));
-    receiveCoinsAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_2));
-    tabGroup->addAction(receiveCoinsAction);
 
-    sendCoinsAction = new QAction(QIcon(":/icons/send"), tr("&Send"), this);
+    sendCoinsAction = new QAction(QIcon(":/icons/send"), tr("&Send"), tabGroup);
     sendCoinsAction->setToolTip(tr("Send coins to a Clam address"));
-    sendCoinsAction->setCheckable(true);
     sendCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_3));
-    tabGroup->addAction(sendCoinsAction);
 
-    historyAction = new QAction(QIcon(":/icons/history"), tr("&Transactions"), this);
+    historyAction = new QAction(QIcon(":/icons/history"), tr("&Transactions"), tabGroup);
     historyAction->setToolTip(tr("Browse transaction history"));
-    historyAction->setCheckable(true);
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
-    tabGroup->addAction(historyAction);
 
-    addressBookAction = new QAction(QIcon(":/icons/address-book"), tr("&Address Book"), this);
+    addressBookAction = new QAction(QIcon(":/icons/address-book"), tr("&Address Book"), tabGroup);
     addressBookAction->setToolTip(tr("Edit the list of stored addresses and labels"));
-    addressBookAction->setCheckable(true);
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
-    tabGroup->addAction(addressBookAction);
 
-    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options"), this);
+    optionsAction = new QAction(QIcon(":/icons/options"), tr("&Options"), tabGroup);
     optionsAction->setToolTip(tr("Modify configuration options for Clam"));
-    optionsAction->setCheckable(true);
     optionsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
-    tabGroup->addAction(optionsAction);
 
-    rpcConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug Window"), this);
+    rpcConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Console"), tabGroup);
     rpcConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
-    rpcConsoleAction->setCheckable(true);
     rpcConsoleAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
-    tabGroup->addAction(rpcConsoleAction);
 
-    connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    //styleButton = new QAction(QIcon(":/icons/tx_inout"), tr("&Update Style"), tabGroup);
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
-    connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(receiveCoinsAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
-    connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(gotoSendCoinsPage()));
-    connect(historyAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
-    connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
-    connect(optionsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(optionsAction, SIGNAL(triggered()), this, SLOT(gotoOptionsPage()));
-    connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(rpcConsoleAction, SIGNAL(triggered()), this, SLOT(gotoConsolePage()));
 
     quitAction = new QAction(tr("E&xit"), this);
@@ -329,82 +308,99 @@ void BitcoinGUI::createActions()
     connect(lockWalletAction, SIGNAL(triggered()), this, SLOT(lockWallet()));
     connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
     connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
+
+    // TODO testing
+    //connect(styleButton, SIGNAL(triggered()), this, SLOT(updateStyleSlot()));
 }
 
 void BitcoinGUI::createMenuBar()
 {
-    appMenuBar = new QMenuBar();
+    menuBlocks = new QWidget();
+    menuBlocks->setContentsMargins(0,0,0,0);
+    menuBlocks->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    menuBlocks->setStyleSheet("QWidget { background: none; margin: 0px; margin-bottom: 5px; margin-top: 5px; }");
+
+    QHBoxLayout *menuBlocksLayout = new QHBoxLayout(menuBlocks);
+    menuBlocksLayout->setContentsMargins(0,0,0,0);
+    menuBlocksLayout->setSpacing(12);
+    menuBlocksLayout->setAlignment(Qt::AlignHCenter);
 
     // Configure the menus
-    QMenu *file = appMenuBar->addMenu(tr("&File"));
-    file->addAction(backupWalletAction);
-    file->addAction(importAction);
-    file->addAction(exportAction);
-    file->addAction(signMessageAction);
-    file->addAction(verifyMessageAction);
-    file->addSeparator();
-    file->addAction(quitAction);
+    fileMenu = new QMenu();
+    fileMenu->addAction(backupWalletAction);
+    fileMenu->addAction(importAction);
+    fileMenu->addAction(exportAction);
+    fileMenu->addAction(signMessageAction);
+    fileMenu->addAction(verifyMessageAction);
+    fileMenu->addSeparator();
+    fileMenu->addAction(quitAction);
 
-    QMenu *settings = appMenuBar->addMenu(tr("&Settings"));
-    settings->addAction(encryptWalletAction);
-    settings->addAction(changePassphraseAction);
-    settings->addAction(unlockWalletAction);
-    settings->addAction(lockWalletAction);
+    miscMenu = new QMenu();
+    miscMenu->addAction(encryptWalletAction);
+    miscMenu->addAction(changePassphraseAction);
+    miscMenu->addAction(unlockWalletAction);
+    miscMenu->addAction(lockWalletAction);
+    miscMenu->addSeparator();
+    miscMenu->addAction(aboutAction);
+    miscMenu->addAction(aboutQtAction);
 
-    QMenu *help = appMenuBar->addMenu(tr("&Help"));
-    help->addAction(aboutAction);
-    help->addAction(aboutQtAction);
+    // make some buttons instead of qmenubar
+    QPushButton *fileButton = new QPushButton(" &File ");
+    QPushButton *miscButton = new QPushButton(" &Misc ");
+
+    menuBlocksLayout->addWidget(fileButton);
+    menuBlocksLayout->addWidget(miscButton);
+
+    connect( fileButton, SIGNAL(released()), this, SLOT(showFileMenu()) );
+    connect( miscButton, SIGNAL(released()), this, SLOT(showMiscMenu()) );
 }
 
 static QWidget* makeToolBarSpacer()
 {
     QWidget* spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-    spacer->setStyleSheet(fUseClamTheme ? "QWidget { background: rgb(30,32,36); }" : "QWidget { background: none; }");
+    spacer->setStyleSheet("QWidget { background: none; }"); // old QWidget { background: rgb(30,32,36); }" :
     return spacer;
 }
 
 void BitcoinGUI::createToolBars()
 {
-    toolbar = new QToolBar(tr("Tabs toolbar"));
+    toolbar = new QToolBar();
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolbar->setContextMenuPolicy(Qt::PreventContextMenu);
 
-    if (fUseClamTheme)
+    QLabel* header = new QLabel();
+    header->setStyleSheet("QWidget { background: none; }");
+    header->setPixmap(QPixmap(":/images/header"));
+    header->resize(150, 116);
+    header->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    // Add header and menu buttons
+    toolbar->addWidget(header);
+    toolbar->addWidget(menuBlocks);
+
+    // Add the widgets to the toolbar
+    foreach(QAction *a, tabGroup->actions())
     {
-        QWidget* header = new QWidget();
-        header->setMinimumSize(160, 116);
-        header->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-        header->setStyleSheet("QWidget { background-color: rgb(24,26,30); background-repeat: no-repeat; background-image: url(:/images/header); background-position: top center; }");
-        toolbar->addWidget(header);
-        toolbar->addWidget(makeToolBarSpacer());
+        a->setCheckable(true);
+        toolbar->addAction(a);
     }
-
-    toolbar->addAction(overviewAction);
-    toolbar->addAction(receiveCoinsAction);
-    toolbar->addAction(sendCoinsAction);
-    toolbar->addAction(historyAction);
-    toolbar->addAction(addressBookAction);
-    toolbar->addAction(optionsAction);
-    toolbar->addAction(rpcConsoleAction);
-
-    toolbar->addWidget(makeToolBarSpacer());
 
     toolbar->setOrientation(Qt::Vertical);
     toolbar->setFloatable(false); // Disable dockable
     toolbar->setMovable(false); // Disable drag/drop handle
 
+    toolbar->addWidget(makeToolBarSpacer());
+
     addToolBar(Qt::LeftToolBarArea, toolbar);
 
-    int w = 0;
+    // Fixed width to widest of all toolbar 'buttons'
+    int widestWidth = 0;
+    foreach(QAction *action, tabGroup->actions())
+        widestWidth = qMax(widestWidth, toolbar->widgetForAction(action)->width());
 
-    foreach(QAction *action, toolbar->actions()) {
-        w = std::max(w, toolbar->widgetForAction(action)->width());
-    }
-
-    foreach(QAction *action, toolbar->actions()) {
-        toolbar->widgetForAction(action)->setFixedWidth(w);
-    }
+    foreach(QAction *action, tabGroup->actions())
+        toolbar->widgetForAction(action)->setFixedWidth(widestWidth);
 }
 
 void BitcoinGUI::setClientModel(ClientModel *clientModel)
@@ -522,7 +518,7 @@ void BitcoinGUI::createTrayIcon()
     trayIconMenu->addAction(quitAction);
 #endif
 
-    notificator = new Notificator(qApp->applicationName(), trayIcon);
+    notificator = new Notificator(qApp->applicationName(), trayIcon, this);
 }
 
 #ifndef Q_OS_MAC
@@ -573,7 +569,6 @@ void BitcoinGUI::setNumBlocks(int count)
     if (!clientModel || (clientModel->getNumConnections() == 0 && !clientModel->isImporting()))
     {
         statusBar()->setVisible(false);
-
         return;
     }
 
@@ -639,6 +634,7 @@ void BitcoinGUI::setNumBlocks(int count)
             syncIconMovie->jumpToNextFrame();
         prevBlocks = count;
 
+        // TODO: make this show something useful
         overviewPage->showOutOfSyncWarning(true);
 
         tooltip += QString("<br>");
@@ -794,6 +790,7 @@ void BitcoinGUI::gotoOverviewPage()
     overviewAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(overviewPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoHistoryPage()
@@ -801,6 +798,7 @@ void BitcoinGUI::gotoHistoryPage()
     historyAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(transactionsPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoAddressBookPage()
@@ -808,6 +806,7 @@ void BitcoinGUI::gotoAddressBookPage()
     addressBookAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(addressBookPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
@@ -815,6 +814,7 @@ void BitcoinGUI::gotoReceiveCoinsPage()
     receiveCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(receiveCoinsPage);
     toggleExportButton(true);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoSendCoinsPage()
@@ -822,6 +822,7 @@ void BitcoinGUI::gotoSendCoinsPage()
     sendCoinsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(sendCoinsPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoOptionsPage()
@@ -835,11 +836,15 @@ void BitcoinGUI::gotoOptionsPage()
         optionsPage = new OptionsDialog(this);
         optionsPage->setModel(clientModel->getOptionsModel());
         centralStackedWidget->addWidget(optionsPage);
+
+        // sync clamspeech editor with the selector in SendCoinsDialog
+        connect( optionsPage, SIGNAL(onClamSpeechUpdated()), this, SLOT(uiReady()) );
     }
 
     optionsAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(optionsPage);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoConsolePage()
@@ -847,6 +852,7 @@ void BitcoinGUI::gotoConsolePage()
     rpcConsoleAction->setChecked(true);
     centralStackedWidget->setCurrentWidget(rpcConsole);
     toggleExportButton(false);
+    showNormalIfMinimized();
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)
@@ -896,6 +902,18 @@ void BitcoinGUI::dropEvent(QDropEvent *event)
     event->acceptProposedAction();
 }
 
+bool BitcoinGUI::eventFilter(QObject *object, QEvent *event)
+{
+    // Catch status tip events
+    if (event->type() == QEvent::StatusTip)
+    {
+        // Prevent adding text from setStatusTip(), if we currently use the status bar for displaying other stuff
+        if (progressBarLabel->isVisible() || progressBar->isVisible())
+            return true;
+    }
+    return QMainWindow::eventFilter(object, event);
+}
+
 void BitcoinGUI::handleURI(QString strURI)
 {
     // URI has to be valid
@@ -906,6 +924,19 @@ void BitcoinGUI::handleURI(QString strURI)
     }
     else
         notificator->notify(Notificator::Warning, tr("URI handling"), tr("URI can not be parsed! This can be caused by an invalid Clam address or malformed URI parameters."));
+}
+
+void BitcoinGUI::uiReady()
+{
+    qDebug() << "BitcoinGUI::uiReady()";
+
+    if ( sendCoinsPage )
+        this->sendCoinsPage->uiReady();
+
+    // Only update the page if it's created
+    // OptionsDialog is created on the fly and does NOT run this on first init
+    if ( optionsPage )
+        this->sendCoinsPage->uiReady();
 }
 
 void BitcoinGUI::setEncryptionStatus(int status)
@@ -953,7 +984,11 @@ void BitcoinGUI::encryptWallet()
 
 void BitcoinGUI::backupWallet()
 {
+#if QT_VERSION < 0x050000
     QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+#else
+    QString saveDir = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).first();
+#endif
     QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
     if(!filename.isEmpty()) {
         if(!walletModel->backupWallet(filename)) {
@@ -964,15 +999,29 @@ void BitcoinGUI::backupWallet()
 
 void BitcoinGUI::importWallet()
 {
-    QString workDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
-    QString filename = QFileDialog::getOpenFileName(this, tr("Import Wallet"), workDir, tr("Wallet Data (*.dat)"));
+    QString workDir = QString::fromStdString(GetDataDir().string());
+
+    // Make getOpenFileName for one file, unlimited filters
+    QFileDialog fd(this);
+    fd.setDirectory(workDir);
+    fd.setNameFilter(tr("Wallet Data (*.dat)"));
+    fd.setFilter(QDir::AllDirs | QDir::AllEntries | QDir::Hidden | QDir::System); // show all that shit
+    fd.setFileMode(QFileDialog::ExistingFile); // return one file name at [0]
+    fd.setViewMode(QFileDialog::Detail); // show standard file detail view
+    fd.exec();
+
+    QString filename = fd.selectedFiles().value(0); // incase empty or cancel, use value() instead of at() for safe pointer
     QString passwd;
     QString rpcCmd;
     bool isValidWallet = false;
 
     /** Cancel pressed */
-    if(filename.isEmpty())
+    if(filename.trimmed().isEmpty())
         return;
+
+#if defined(WIN32)
+    filename = GUIUtil::toDOSPathFormat(filename);
+#endif
 
     /** Attempt to begin the import, and detect fails */
     CWallet *openWallet = new CWallet(filename.toStdString());
@@ -999,6 +1048,8 @@ void BitcoinGUI::importWallet()
 
          passwd = QInputDialog::getText(this, tr("Import Wallet"), tr("Password:"), QLineEdit::Password);
     }
+
+    qDebug() << "Importing wallet file" << filename;
 
     rpcCmd = QString("importwallet %1 %2")
             .arg(filename)
@@ -1083,27 +1134,26 @@ void BitcoinGUI::updateWeight()
   pwalletMain->GetStakeWeight(nWeight);
 }
 
-void BitcoinGUI::detectNewVersion()
-{
-    // Ghetto protocol_version detect
-    if ( fClientsWithNewerVersion > 2 )
-    {
-        labelUpdateIcon->setPixmap(QIcon(":/icons/update_notify").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
-        labelUpdateIcon->setToolTip(tr("A new version is available! Visit http://www.clamclient.com for details."));
-    }
-}
+//void BitcoinGUI::detectNewVersion()
+//{
+//    // OLD protocol_version detect
+//    if ( fClientsWithNewerVersion > 2 )
+//    {
+//        labelUpdateIcon->setPixmap(QIcon(":/icons/update_notify").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+//        labelUpdateIcon->setToolTip(tr("A new version is available! Visit http://www.clamclient.com for details."));
+//    }
+//}
 
 void BitcoinGUI::updateStakingIcon()
 {
-    detectNewVersion();
     updateWeight();
 
     if (nLastCoinStakeSearchInterval && nWeight)
     {
-	uint64_t nEstimateTime;
- 	//uint64_t nWeight = this->nWeight;
+        uint64_t nEstimateTime;
         uint64_t nNetworkWeight = GetPoSKernelPS();
-	pwalletMain->GetExpectedStakeTime(nEstimateTime);
+
+        pwalletMain->GetExpectedStakeTime(nEstimateTime);
 
         QString text;
         if (nEstimateTime < 60)
@@ -1124,7 +1174,8 @@ void BitcoinGUI::updateStakingIcon()
         }
 
         nWeight /= COIN;
-	
+        nNetworkWeight /= COIN;
+
         labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight).arg(nNetworkWeight).arg(text));
     }
@@ -1148,4 +1199,113 @@ void BitcoinGUI::detectShutdown()
 {
     if (ShutdownRequested())
         QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+}
+
+void BitcoinGUI::updateStyleSlot()
+{
+    updateStyle();
+}
+
+void BitcoinGUI::showFileMenu()
+{
+    fileMenu->exec(QCursor::pos());
+}
+
+void BitcoinGUI::showMiscMenu()
+{
+    miscMenu->exec(QCursor::pos());
+}
+
+void BitcoinGUI::updateStyle()
+{
+    // check if custom styles are enabled
+    if ( !fUseClamTheme )
+        return;
+
+    QString styleSheet;
+    QString qssPath = QString::fromStdString( GetDataDir().string() ) \
+                      + "/style.qss";
+
+    // there is no file, write the default qss
+    if ( !QFile::exists( qssPath ) )
+        writeDefaultStyleSheet( qssPath );
+
+    // check for new client version, store the old qss, write a new one
+    if ( nStyleSheetVersion < CURRENT_STYLESHEET_VERSION )
+        writeUpdatedStyleSheet( qssPath );
+
+    // load style.qss
+    if ( QFile::exists( qssPath ) )
+    {
+        qDebug() << "Updating stylesheet";
+        QFile f( qssPath );
+        f.open( QFile::ReadOnly );
+        styleSheet = f.readAll();
+        f.close();
+    }
+
+    // check for empty stylesheet
+    if( styleSheet.isEmpty() )
+    {
+        qDebug() << "FAILED to load valid stylesheet by file, using qrc";
+        QFile qssQrc( ":/text/stylesheet" );
+        qssQrc.open( QFile::ReadOnly );
+        styleSheet = qssQrc.readAll();
+        qssQrc.close();
+    }
+
+    // if the stylesheet is invalid, qrc/qss is broken or the world ended
+    qApp->setStyleSheet( styleSheet );
+}
+
+void BitcoinGUI::writeUpdatedStyleSheet(const QString &qssPath)
+{
+    qDebug() << "Writing version updated style sheet";
+
+    if ( !QFile::exists( qssPath ) )
+    {
+        // should never happen unless the user changed access permissions
+        qDebug() << "FAILED updating stylesheet, does not exist!";
+        return;
+    }
+
+    // rename old stylesheet
+    if ( !QFile::rename( qssPath, QString( qssPath ).append( ".old" ) ) )
+        qDebug() << "FAILED renaming old stylesheet!";
+
+    // write new stylesheet
+    writeDefaultStyleSheet( qssPath );
+
+    // write qsettings
+    nStyleSheetVersion = CURRENT_STYLESHEET_VERSION;
+
+    QSettings settings;
+    settings.setValue( "nStyleSheetVersion", nStyleSheetVersion );
+}
+
+void BitcoinGUI::writeDefaultStyleSheet(const QString &qssPath)
+{
+    qDebug() << "Writing default style sheet";
+
+    QFile qssQrc( ":/text/stylesheet" );
+    QFile f( qssPath );
+
+    qssQrc.open( QFile::ReadOnly );
+    f.open( QFile::WriteOnly );
+
+    // check for read/write permissions
+    if ( !f.isWritable() || !qssQrc.isReadable() )
+    {
+        qDebug() << "FAILED to read or write on style sheet swap";
+    }
+    else
+    {
+        f.seek(0);
+        // output bytes written if we wrote successfully
+        if ( f.write( qssQrc.readAll() ) )
+            qDebug() << "SUCCESS Wrote" << f.size() << "bytes to new stylesheet";
+    }
+
+    qssQrc.close();
+    f.close();
 }

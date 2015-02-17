@@ -406,7 +406,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             }
             CKey key;
             CPrivKey pkey;
-            if (strType == "key")
+            if (strType.at(0) == 'k')
             {
                 wss.nKeys++;
                 ssValue >> pkey;
@@ -614,7 +614,7 @@ ReadKeyValueImport(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             ssValue >> kMasterKey;
             if(pwallet->mapMasterKeys.count(nID) != 0)
             {
-                printf("Error reading wallet database: duplicate CMasterKey id %u", nID);
+                LogPrintf("Error reading wallet database: duplicate CMasterKey id %u", nID);
                 return false;
             }
             pwallet->mapMasterKeys[nID] = kMasterKey;
@@ -630,7 +630,7 @@ ReadKeyValueImport(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             ssValue >> vchPrivKey;
             if (!pwallet->LoadCryptedKey(vchPubKey, vchPrivKey))
             {
-                printf("Error reading wallet database: LoadCryptedKey failed");
+                LogPrintf("Error reading wallet database: LoadCryptedKey failed");
                 return false;
             }
             wss.fIsEncrypted = true;
@@ -782,7 +782,7 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
     DBErrors result = DB_LOAD_OK;
 
     try {
-        printf("Loading Wallet for Import\n");
+        LogPrintf("Loading Wallet for Import\n");
         LOCK(pwallet->cs_wallet);
         int nMinVersion = 0;
         if (Read((string)"minversion", nMinVersion))
@@ -796,7 +796,7 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
         Dbc* pcursor = GetCursor();
         if (!pcursor)
         {
-            printf("Error getting wallet database cursor\n");
+            LogPrintf("Error getting wallet database cursor\n");
             return DB_CORRUPT;
         }
 
@@ -810,7 +810,7 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
                 break;
             else if (ret != 0)
             {
-                printf("Error reading next record from wallet database\n");
+                LogPrintf("Error reading next record from wallet database\n");
                 return DB_CORRUPT;
             }
 
@@ -818,11 +818,11 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
             string strType, strErr;
             if (!ReadKeyValueImport(pwallet, ssKey, ssValue, wss, strType, strErr))
             {
-                 printf("Reading Keys\n");
+                 LogPrintf("Reading keys\n");
                 // losing keys is considered a catastrophic error, anything else
                 // we assume the user can live with:
                 if (IsKeyType(strType)) {
-                    printf("Corrupt keys");
+                    LogPrintf("Corrupt keys");
                     result = DB_CORRUPT;
                 } else
                 {
@@ -831,13 +831,13 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
                 }
             }
             if (!strErr.empty())
-                printf("%s\n", strErr.c_str());
+                LogPrintf("%s\n", strErr);
         }
         pcursor->close();
     }
     catch (...)
     {
-        printf("Corruption will robinson\n");
+        LogPrintf("Wallet corruption detected\n");
         result = DB_CORRUPT;
     }
 
@@ -849,9 +849,9 @@ DBErrors CWalletDB::LoadWalletImport(CWallet* pwallet)
     if (result != DB_LOAD_OK)
         return result;
 
-    printf("nFileVersion = %d\n", wss.nFileVersion);
+    LogPrintf("nFileVersion = %d\n", wss.nFileVersion);
 
-    printf("Keys: %u plaintext, %u encrypted, %u total\n",
+    LogPrintf("Keys: %u plaintext, %u encrypted, %u total\n",
            wss.nKeys, wss.nCKeys, wss.nKeys + wss.nCKeys);
 
     return result;

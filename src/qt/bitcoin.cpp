@@ -1,6 +1,3 @@
-//d
-//
-
 #include <QApplication>
 
 #include "bitcoingui.h"
@@ -18,24 +15,44 @@
 #include "macdockiconhandler.h"
 #endif
 
+#include <QApplication>
+#include <QDebug>
+#include <QLibraryInfo>
+#include <QLocale>
 #include <QMessageBox>
+#include <QSettings>
+#include <QThread>
 #include <QTextCodec>
 #include <QLocale>
 #include <QTimer>
 #include <QTranslator>
 #include <QSplashScreen>
-#include <QLibraryInfo>
 
-#if defined(BITCOIN_NEED_QT_PLUGINS) && !defined(_BITCOIN_QT_PLUGINS_INCLUDED)
-#define _BITCOIN_QT_PLUGINS_INCLUDED
-#define __INSURE__
+
+#if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
+#if QT_VERSION < 0x050000
 Q_IMPORT_PLUGIN(qcncodecs)
 Q_IMPORT_PLUGIN(qjpcodecs)
 Q_IMPORT_PLUGIN(qtwcodecs)
 Q_IMPORT_PLUGIN(qkrcodecs)
 Q_IMPORT_PLUGIN(qtaccessiblewidgets)
+#else
+Q_IMPORT_PLUGIN(AccessibleFactory)
+#if defined(QT_QPA_PLATFORM_XCB)
+Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+#elif defined(QT_QPA_PLATFORM_WINDOWS)
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#elif defined(QT_QPA_PLATFORM_COCOA)
+Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 #endif
+#endif
+#endif
+
+#if QT_VERSION < 0x050000
+#include <QTextCodec>
+#endif
+
 
 // Need a global reference for the notifications to find the GUI
 static BitcoinGUI *guiref;
@@ -125,6 +142,7 @@ void DebugMessageHandler(QtMsgType type, const char * msg)
 #else
 void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
 {
+    Q_UNUSED(context);
     const char *category = (type == QtDebugMsg) ? "qt" : NULL;
     LogPrint(category, "GUI: %s\n", msg.toStdString());
 }
@@ -251,9 +269,6 @@ int main(int argc, char *argv[])
 
     try
     {
-        if (fUseClamTheme)
-            GUIUtil::SetClamThemeQSS(app);
-
         // Regenerate startup link, to fix links to old versions
         if (GUIUtil::GetStartOnSystemStartup())
             GUIUtil::SetStartOnSystemStartup(true);
@@ -286,22 +301,18 @@ int main(int argc, char *argv[])
 
                 // If -min option passed, start window minimized.
                 if(GetBoolArg("-min", false))
-                {
                     window.showMinimized();
-                }
-                else
-                {
-                    window.show();
-                }
 
                 // Now that initialization/startup is done, process any command-line
                 // bitcoin: URIs
                 QObject::connect(paymentServer, SIGNAL(receivedURI(QString)), &window, SLOT(handleURI(QString)));
                 QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
 
+                // tell BitcoinGUI the backend is finished
+                QTimer::singleShot(100, &window, SLOT(uiReady()));
+
                 app.exec();
 
-                window.hide();
                 window.setClientModel(0);
                 window.setWalletModel(0);
                 guiref = 0;
