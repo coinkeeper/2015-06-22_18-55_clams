@@ -2593,14 +2593,15 @@ bool CBlock::SignBlock(CWallet& wallet, int64_t nFees)
 
     CKey key;
     CTransaction txCoinStake;
+    unsigned int nStartTime = txCoinStake.nTime;
     if (IsProtocolV2(nBestHeight+1))
-	 txCoinStake.nTime &= ~STAKE_TIMESTAMP_MASK;
+        txCoinStake.nTime &= ~STAKE_TIMESTAMP_MASK;
     int64_t nSearchTime = txCoinStake.nTime; // search to current time
 
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
-	int64_t nSearchInterval = IsProtocolV2(nBestHeight+1) ? 1 : nSearchTime - nLastCoinStakeSearchTime;
-	if (wallet.CreateCoinStake(wallet, nBits, nSearchInterval, nFees, txCoinStake, key))
+        int64_t nSearchInterval = IsProtocolV2(nBestHeight+1) ? 1 : nSearchTime - nLastCoinStakeSearchTime;
+        if (wallet.CreateCoinStake(wallet, nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime >= max(pindexBest->GetPastTimeLimit()+1, PastDrift(pindexBest->GetBlockTime(), pindexBest->nHeight+1)))
             {
@@ -2618,10 +2619,15 @@ bool CBlock::SignBlock(CWallet& wallet, int64_t nFees)
                 vtx.insert(vtx.begin() + 1, txCoinStake);
                 hashMerkleRoot = BuildMerkleTree();
 
+                LogPrintf("successful stake took %lds\n", GetAdjustedTime() - nStartTime);
+
                 // append a signature to our block
                 return key.Sign(GetHash(), vchBlockSig);
             }
         }
+
+        LogPrintf("stake took %lds\n", GetAdjustedTime() - nStartTime);
+
         nLastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
         nLastCoinStakeSearchTime = nSearchTime;
     }
