@@ -33,6 +33,7 @@ extern int64_t nSplitSize;
 static unsigned int GetStakeSplitAge() { return 1 * 24 * 60 * 60; }
 
 static int64_t GetStakeCombineThreshold() { return 1 * COIN; }
+extern vector<CKeyID> vChangeAddresses;
 extern set<CBitcoinAddress> setSpendLastAddresses;
 
 int64_t gcd(int64_t n,int64_t m) { return m == 0 ? n : gcd(m, n % m); }
@@ -1780,6 +1781,13 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
                     // coin control: send change to custom address
                     if (coinControl && !boost::get<CNoDestination>(&coinControl->destChange))
                         scriptChange.SetDestination(coinControl->destChange);
+
+                    // send change to one of the specified change addresses, if specified at init
+                    else if (vChangeAddresses.size())
+                    {
+                        CKeyID keyID = vChangeAddresses[GetRandInt(vChangeAddresses.size())];
+                        scriptChange.SetDestination(keyID);
+                    }
 
                     // no coin control: send change to newly generated address
                     else
