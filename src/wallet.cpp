@@ -1952,10 +1952,10 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     // Choose coins to use
     int64_t nBalance = GetBalance();
 
-    LogPrintf("\n\n[STAKE] searching for staking opportunity:\n");
+    LogPrint("stake", "\n\n[STAKE] searching for staking opportunity:\n");
 
     if (nBalance <= nReserveBalance) {
-        LogPrintf("[STAKE] balance %s < reserve %s\n", FormatMoney(nBalance), FormatMoney(nReserveBalance));
+        LogPrint("stake", "[STAKE] balance %s < reserve %s\n", FormatMoney(nBalance), FormatMoney(nReserveBalance));
         return false;
     }
 
@@ -1966,16 +1966,16 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
     // Select coins with suitable depth
     if (!SelectCoinsForStaking(nBalance - nReserveBalance, txNew.nTime, setCoins, nValueIn)) {
-        LogPrintf("[STAKE] failed to select coins for staking\n");
+        LogPrint("stake", "[STAKE] failed to select coins for staking\n");
         return false;
     }
 
     if (setCoins.empty()) {
-        LogPrintf("[STAKE] set of selected coins for staking is empty\n");
+        LogPrint("stake", "[STAKE] set of selected coins for staking is empty\n");
         return false;
     }
 
-    LogPrintf("[STAKE] checking %d output(s)\n", setCoins.size());
+    LogPrint("stake", "[STAKE] checking %d output(s)\n", setCoins.size());
 
     int64_t nCredit = 0;
     CScript scriptPubKeyKernel;
@@ -1989,7 +1989,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         {
             LOCK2(cs_main, cs_wallet);
             if (!txdb.ReadTxIndex(pcoin.first->hash, txindex)) {
-                LogPrintf("[STAKE] skip %s:%-3d (%s CLAM) - can't read txindex\n",
+                LogPrint("stake", "[STAKE] skip %s:%-3d (%s CLAM) - can't read txindex\n",
                           pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
                 continue;
             }
@@ -2000,7 +2000,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         {
             LOCK2(cs_main, cs_wallet);
             if (!block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false)) {
-                LogPrintf("[STAKE] skip %s:%-3d (%s CLAM) - can't read block\n",
+                LogPrint("stake", "[STAKE] skip %s:%-3d (%s CLAM) - can't read block\n",
                           pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
                 continue;
             }
@@ -2008,7 +2008,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
         static int nMaxStakeSearchInterval = 60;
         if (block.GetBlockTime() + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval) {
-            LogPrintf("[STAKE] skip %s:%-3d (%s CLAM) - only %d minutes old\n",
+            LogPrint("stake", "[STAKE] skip %s:%-3d (%s CLAM) - only %d minutes old\n",
                       pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue),
                       (txNew.nTime - nMaxStakeSearchInterval - block.GetBlockTime()) / 60);
             continue; // only count coins meeting min age requirement
@@ -2022,7 +2022,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             // Search nSearchInterval seconds back up to nMaxStakeSearchInterval
             uint256 hashProofOfStake = 0, targetProofOfStake = 0;
             COutPoint prevoutStake = COutPoint(pcoin.first->hash, pcoin.second);
-            LogPrintf("[STAKE] check %s:%-3d (%s CLAM)\n",
+            LogPrint("stake", "[STAKE] check %s:%-3d (%s CLAM)\n",
                       pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
             if (CheckStakeKernelHash(pindexPrev, nBits, block, txindex.pos.nTxPos - txindex.pos.nBlockPos, *pcoin.first, prevoutStake, txNew.nTime - n, hashProofOfStake, targetProofOfStake))
             {
@@ -2034,14 +2034,14 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 scriptPubKeyKernel = pcoin.first->vout[pcoin.second].scriptPubKey;
                 if (!Solver(scriptPubKeyKernel, whichType, vSolutions))
                 {
-                    LogPrintf("[STAKE] fail %s:%-3d (%s CLAM) - can't parse kernel\n",
+                    LogPrint("stake", "[STAKE] fail %s:%-3d (%s CLAM) - can't parse kernel\n",
                               pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
                     break;
                 }
                 LogPrint("coinstake", "CreateCoinStake : parsed kernel type=%d\n", whichType);
                 if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH)
                 {
-                    LogPrintf("[STAKE] fail %s:%-3d (%s CLAM) - bad kernel type\n",
+                    LogPrint("stake", "[STAKE] fail %s:%-3d (%s CLAM) - bad kernel type\n",
                               pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
                     break;  // only support pay to public key and pay to address
                 }
@@ -2050,7 +2050,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                     // convert to pay to public key type
                     if (!keystore.GetKey(uint160(vSolutions[0]), key))
                     {
-                        LogPrintf("[STAKE] fail %s:%-3d (%s CLAM) - can't get public key (a)\n",
+                        LogPrint("stake", "[STAKE] fail %s:%-3d (%s CLAM) - can't get public key (a)\n",
                                   pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue));
                         break;  // unable to find corresponding public key
                     }
@@ -2061,7 +2061,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                     valtype& vchPubKey = vSolutions[0];
                     if (!keystore.GetKey(Hash160(vchPubKey), key))
                     {
-                        LogPrintf("[STAKE] fail %s:%-3d (%s CLAM) - can't get public key, type %d\n",
+                        LogPrint("stake", "[STAKE] fail %s:%-3d (%s CLAM) - can't get public key, type %d\n",
                                   pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue),
                                   whichType);
                         LogPrint("coinstake", "CreateCoinStake : failed to get key for kernel type=%d\n", whichType);
@@ -2070,7 +2070,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
                     if (key.GetPubKey() != vchPubKey)
                     {
-                        LogPrintf("[STAKE] fail %s:%-3d (%s CLAM) - invalid key, type %d\n",
+                        LogPrint("stake", "[STAKE] fail %s:%-3d (%s CLAM) - invalid key, type %d\n",
                                   pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue),
                                   whichType);
                         break; // keys mismatch

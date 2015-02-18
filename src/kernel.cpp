@@ -327,12 +327,12 @@ static bool CheckStakeKernelHashV1(unsigned int nBits, const CBlock& blockFrom, 
 static bool CheckStakeKernelHashV2(CBlockIndex* pindexPrev, unsigned int nBits, unsigned int nTimeBlockFrom, const CTransaction& txPrev, const COutPoint& prevout, unsigned int nTimeTx, uint256& hashProofOfStake, uint256& targetProofOfStake, bool fPrintProofOfStake)
 {
     if (nTimeTx < txPrev.nTime) {  // Transaction timestamp violation
-        LogPrintf("[STAKE] fail: nTime violation\n");
+        LogPrint("stake", "[STAKE] fail: nTime violation\n");
         return error("CheckStakeKernelHash() : nTime violation");
     }
 
     if (nTimeBlockFrom + nStakeMinAge > nTimeTx) { // Min age requirement
-        LogPrintf("[STAKE] fail: too young\n");
+        LogPrint("stake", "[STAKE] fail: too young\n");
         return error("CheckStakeKernelHash() : min age violation");
     }
 
@@ -370,11 +370,13 @@ static bool CheckStakeKernelHashV2(CBlockIndex* pindexPrev, unsigned int nBits, 
 
     // Now check if proof-of-stake hash meets target protocol
     if (CBigNum(hashProofOfStake) > bnTarget) {
-        LogPrintf("\n[STAKE] fail: hash %64s\n[STAKE]   > target %64s\n", CBigNum(hashProofOfStake).GetHex(), bnTarget.GetHex());
+        LogPrint("stake", "[STAKE] fail: hash %64s\n", CBigNum(hashProofOfStake).GetHex());
+        LogPrint("stake", "[STAKE]   > target %64s\n", bnTarget.GetHex());
         return false;
     }
 
-    LogPrintf("\n[STAKE] PASS: hash %64s\n[STAKE]  <= target %64s\n", CBigNum(hashProofOfStake).GetHex(), bnTarget.GetHex());
+    LogPrint("stake", "[STAKE] PASS: hash %64s\n", CBigNum(hashProofOfStake).GetHex());
+    LogPrint("stake", "[STAKE]  <= target %64s\n", bnTarget.GetHex());
 
     if (fDebug && !fPrintProofOfStake)
     {
