@@ -618,15 +618,13 @@ void CWallet::SyncTransaction(const CTransaction& tx, const CBlock* pblock, bool
 }
 
 void CWallet::StakeTransaction(const CScript& script, int64_t nStakeReward, bool fConnect) {
-    if (!fAddressRewardsReady) {
-        LogPrintf("not tracking stake rewards yet\n");
+    if (!fAddressRewardsReady)
         return;
-    }
 
-    if (!fConnect)
-        LogPrintf("stake tx disconnecting %s\n", FormatMoney(nStakeReward));
-    else
-        LogPrintf("stake tx connecting    %s\n", FormatMoney(nStakeReward));
+    // if (!fConnect)
+    //     LogPrintf("stake tx disconnecting %s\n", FormatMoney(nStakeReward));
+    // else
+    //     LogPrintf("stake tx connecting    %s\n", FormatMoney(nStakeReward));
 
     CTxDestination address;
     if (!ExtractDestination(script, address)) {
@@ -636,13 +634,13 @@ void CWallet::StakeTransaction(const CScript& script, int64_t nStakeReward, bool
 
     std::string addr(CBitcoinAddress(address).ToString());
     if (!::IsMine(*this, address)) {
-        LogPrintf("address %s is not mine\n", addr);
+        LogPrintf("stake %s for %s; not mine\n", FormatMoney(nStakeReward), addr);
         return;
     }
 
     mapAddressRewards["*"] += nStakeReward;
     mapAddressRewards[addr] += nStakeReward;
-    LogPrintf("stake %s for destination: %s; global up to %s, address up to %s\n",
+    LogPrintf("stake %s for %s; global = %s, address = %s\n",
               FormatMoney(nStakeReward), addr,
               FormatMoney(mapAddressRewards["*"]),
               FormatMoney(mapAddressRewards[addr]));
@@ -1713,12 +1711,16 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
     int64_t nValue = 0;
     BOOST_FOREACH (const PAIRTYPE(CScript, int64_t)& s, vecSend)
     {
-        if (nValue < 0)
+        if (nValue < 0) {
+            LogPrintf("CWallet::CreateTransaction failed: negative value\n");
             return false;
+        }
         nValue += s.second;
     }
-    if (vecSend.empty() || nValue < 0)
+    if (vecSend.empty() || nValue < 0) {
+        LogPrintf("CWallet::CreateTransaction failed: no inputs or negative total\n");
         return false;
+    }
 
     wtxNew.BindWallet(this);
     // transaction comment
@@ -1752,8 +1754,10 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
                 // Choose coins to use
                 set<pair<const CWalletTx*,unsigned int> > setCoins;
                 int64_t nValueIn = 0;
-                if (!SelectCoins(nTotalValue, wtxNew.nTime, setCoins, nValueIn, coinControl))
+                if (!SelectCoins(nTotalValue, wtxNew.nTime, setCoins, nValueIn, coinControl)) {
+                    LogPrintf("CWallet::CreateTransaction failed: coin selection failed\n");
                     return false;
+                }
                 BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
                 {
                     int64_t nCredit = pcoin.first->vout[pcoin.second].nValue;
@@ -1820,13 +1824,17 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
                 // Sign
                 int nIn = 0;
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
-                    if (!SignSignature(*this, *coin.first, wtxNew, nIn++))
+                    if (!SignSignature(*this, *coin.first, wtxNew, nIn++)) {
+                        LogPrintf("CWallet::CreateTransaction failed: signing failed\n");
                         return false;
+                    }
 
                 // Limit size
                 unsigned int nBytes = ::GetSerializeSize(*(CTransaction*)&wtxNew, SER_NETWORK, PROTOCOL_VERSION);
-                if (nBytes >= MAX_STANDARD_TX_SIZE)
+                if (nBytes >= MAX_STANDARD_TX_SIZE) {
+                    LogPrintf("CWallet::CreateTransaction failed: transaction too big (%d >= %d)\n", nBytes, MAX_STANDARD_TX_SIZE);
                     return false;
+                }
                 dPriority /= nBytes;
 
                 // Check that enough fee is included
