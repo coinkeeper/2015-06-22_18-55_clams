@@ -1280,7 +1280,7 @@ struct LargerOrEqualThanThreshold
     bool operator()(pair<pair<int64_t,int64_t>,pair<const CWalletTx*,unsigned int> > const &v) const { return v.first.first >= threshold; }
 };
 
-bool CWallet::SelectCoinsMinConfByCoinAge(int64_t nTargetValue, unsigned int nSpendTime, int nConfMine, int nConfTheirs, std::vector<COutput> vCoins, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet) const
+bool CWallet::SelectCoinsMinConfByCoinAge(int64_t nTargetValue, unsigned int nSpendTime, int nConfMine, int nConfTheirs, std::vector<COutput> vCoins, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet, bool fLogFailureReason) const
 {
     setCoinsRet.clear();
     nValueRet = 0;
@@ -1329,8 +1329,12 @@ bool CWallet::SelectCoinsMinConfByCoinAge(int64_t nTargetValue, unsigned int nSp
 
     if (nTotalLower < nTargetValue)
     {
-        if (coinLowestLarger.second.first == NULL)
+        if (coinLowestLarger.second.first == NULL) {
+            if (fLogFailureReason)
+                LogPrintf("CWallet::SelectCoinsMinConfByCoinAge failed: sum of lower outputs (%s) < target (%s), and no other outputs\n",
+                          FormatMoney(nTotalLower), FormatMoney(nTargetValue));
             return false;
+        }
         setCoinsRet.insert(coinLowestLarger.second);
         nValueRet += coinLowestLarger.first.first;
         return true;
@@ -1518,7 +1522,7 @@ bool CWallet::SelectCoinsMinConfByCoinAge(int64_t nTargetValue, unsigned int nSp
     return true;
 }
 
-bool CWallet::SelectCoinsMinConf(int64_t nTargetValue, unsigned int nSpendTime, int nConfMine, int nConfTheirs, vector<COutput> vCoins, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet) const
+bool CWallet::SelectCoinsMinConf(int64_t nTargetValue, unsigned int nSpendTime, int nConfMine, int nConfTheirs, vector<COutput> vCoins, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet, bool fLogFailureReason) const
 {
     setCoinsRet.clear();
     nValueRet = 0;
@@ -1578,8 +1582,12 @@ bool CWallet::SelectCoinsMinConf(int64_t nTargetValue, unsigned int nSpendTime, 
 
     if (nTotalLower < nTargetValue)
     {
-        if (coinLowestLarger.second.first == NULL)
+        if (coinLowestLarger.second.first == NULL) {
+            if (fLogFailureReason)
+                LogPrintf("CWallet::SelectCoinsMinConf failed: sum of lower outputs (%s) < target (%s), and no other outputs\n",
+                          FormatMoney(nTotalLower), FormatMoney(nTargetValue));
             return false;
+        }
         setCoinsRet.insert(coinLowestLarger.second);
         nValueRet += coinLowestLarger.first;
         return true;
@@ -1633,10 +1641,17 @@ bool CWallet::SelectCoins(int64_t nTargetValue, unsigned int nSpendTime, set<pai
             nValueRet += out.tx->vout[out.i].nValue;
             setCoinsRet.insert(make_pair(out.tx, out.i));
         }
-        return (nValueRet >= nTargetValue);
+
+        if (nValueRet < nTargetValue) {
+            LogPrintf("CWallet::SelectCoins failed: coin control selects less value than required (%s < %s)\n",
+                      FormatMoney(nValueRet), FormatMoney(nTargetValue));
+            return false;
+        }
+
+        return true;
     }
 
-    boost::function<bool (const CWallet*, int64_t, unsigned int, int, int, std::vector<COutput>, std::set<std::pair<const CWalletTx*,unsigned int> >&, int64_t&)> f = fMinimizeCoinAge ? &CWallet::SelectCoinsMinConfByCoinAge : &CWallet::SelectCoinsMinConf;
+    boost::function<bool (const CWallet*, int64_t, unsigned int, int, int, std::vector<COutput>, std::set<std::pair<const CWalletTx*,unsigned int> >&, int64_t&, bool)> f = fMinimizeCoinAge ? &CWallet::SelectCoinsMinConfByCoinAge : &CWallet::SelectCoinsMinConf;
 
     if (setSpendLastAddresses.size()) {
         int64_t nMiscValue = 0;
@@ -1653,17 +1668,22 @@ bool CWallet::SelectCoins(int64_t nTargetValue, unsigned int nSpendTime, set<pai
         LogPrintf("we have %d (of %d) non-spendlast outputs valued as %s\n", int(vMiscCoins.size()), int(vCoins.size()), FormatMoney(nMiscValue));
 
         if (nMiscValue >= nTargetValue &&
-            (f(this, nTargetValue, nSpendTime, 1, 10, vMiscCoins, setCoinsRet, nValueRet) ||
-             f(this, nTargetValue, nSpendTime, 1, 1, vMiscCoins, setCoinsRet, nValueRet) ||
-             f(this, nTargetValue, nSpendTime, 0, 1, vMiscCoins, setCoinsRet, nValueRet))) {
+            (f(this, nTargetValue, nSpendTime, 1, 10, vMiscCoins, setCoinsRet, nValueRet, false) ||
+             f(this, nTargetValue, nSpendTime, 1,  1, vMiscCoins, setCoinsRet, nValueRet, false) ||
+             f(this, nTargetValue, nSpendTime, 0,  1, vMiscCoins, setCoinsRet, nValueRet, false))) {
             LogPrintf("we can make the transaction without spending any -spendlast coins\n");
             return true;
         }
     }
 
-    return (f(this, nTargetValue, nSpendTime, 1, 10, vCoins, setCoinsRet, nValueRet) ||
-            f(this, nTargetValue, nSpendTime, 1, 1, vCoins, setCoinsRet, nValueRet) ||
-            f(this, nTargetValue, nSpendTime, 0, 1, vCoins, setCoinsRet, nValueRet));
+    if (f(this, nTargetValue, nSpendTime, 1, 10, vCoins, setCoinsRet, nValueRet, false) ||
+        f(this, nTargetValue, nSpendTime, 1,  1, vCoins, setCoinsRet, nValueRet, false) ||
+        f(this, nTargetValue, nSpendTime, 0,  1, vCoins, setCoinsRet, nValueRet, true)) // this is our last chance - if it fails log the reason why
+        return true;
+
+    LogPrintf("CWallet::SelectCoins failed: no way to select coins worth %s\n", FormatMoney(nTargetValue));
+
+    return false;
 }
 
 // Select some coins without random shuffle or best subset approximation
@@ -2300,8 +2320,11 @@ string CWallet::SendMoneyToDestination(const CTxDestination& address, int64_t nV
     // Check amount
     if (nValue <= 0)
         return _("Invalid amount");
-    if (nValue + nTransactionFee > GetBalance())
+    if (nValue + nTransactionFee > GetBalance()) {
+        LogPrintf("CWallet::SendMoneyToDestination failed: value (%s) + fee (%s) = %s > balance (%s)\n",
+                  FormatMoney(nValue), FormatMoney(nTransactionFee), FormatMoney(nValue + nTransactionFee), FormatMoney(GetBalance()));
         return _("Insufficient funds");
+    }
 
     // Parse Bitcoin address
     CScript scriptPubKey;
