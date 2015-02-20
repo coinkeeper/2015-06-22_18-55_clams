@@ -1983,7 +1983,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     LogPrint("stake", "\n\n[STAKE] searching for staking opportunity:\n");
 
     if (nBalance <= nReserveBalance) {
-        LogPrint("stake", "[STAKE] balance %s < reserve %s\n", FormatMoney(nBalance), FormatMoney(nReserveBalance));
+        LogPrint("stake", "[STAKE] balance %s <= reserve %s\n", FormatMoney(nBalance), FormatMoney(nReserveBalance));
         return false;
     }
 
