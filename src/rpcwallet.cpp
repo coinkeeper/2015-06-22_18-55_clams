@@ -416,9 +416,9 @@ Value getstakedbyaddress(const Array& params, bool fHelp)
 
         if (pwalletMain->mapAddressRewards.count(strAddressParam)) {
             nAmount = pwalletMain->mapAddressRewards[strAddressParam];
-            LogPrintf("staked amount from cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
+            LogPrint("stake", "staked amount from cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
         } else
-            LogPrintf("staked amount not in cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
+            LogPrint("stake", "staked amount not in cache: %s for %s\n", FormatMoney(nAmount), strAddressParam);
 
         return ValueFromAmount(nAmount);
     }
