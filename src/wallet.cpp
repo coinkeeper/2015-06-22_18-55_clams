@@ -1746,7 +1746,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
     // transaction comment
 
     if(strCLAMSpeech.empty() && !(mapArgs["-clamspeech"] == "off")) {
-        strCLAMSpeech = GetRandomClamSpeech();
+        strCLAMSpeech = GetDefaultClamSpeech();
     }
 
    wtxNew.strCLAMSpeech = strCLAMSpeech;
@@ -2175,7 +2175,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
     // Set clamSpeech 
     if (!(mapArgs["-clamstake"] == "off")) {
-            txNew.strCLAMSpeech = GetRandomClamSpeech();
+            txNew.strCLAMSpeech = GetDefaultClamSpeech();
     }
 
     // Set output amount

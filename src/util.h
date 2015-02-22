@@ -119,6 +119,7 @@ extern std::string strMiscWarning;
 extern bool fNoListen;
 extern bool fLogTimestamps;
 extern volatile bool fReopenDebugLog;
+extern std::string strDefaultSpeech;
 
 void RandAddSeed();
 void RandAddSeedPerfmon();
@@ -195,7 +196,7 @@ boost::filesystem::path GetConfigFile();
 boost::filesystem::path GetPidFile();
 bool LoadClamSpeech();
 bool SaveClamSpeech();
-std::string GetRandomClamSpeech();
+std::string GetDefaultClamSpeech();
 boost::filesystem::path GetClamSpeechFile();
 boost::filesystem::path GetQuoteFile();
 #ifndef WIN32
