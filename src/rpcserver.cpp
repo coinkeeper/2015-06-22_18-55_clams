@@ -299,6 +299,7 @@ static const CRPCCommand vRPCCommands[] =
     { "repairwallet",           &repairwallet,           false,     true,      true },
     { "resendtx",               &resendtx,               false,     true,      true },
     { "makekeypair",            &makekeypair,            false,     true,      false },
+    { "setspeech",              &setspeech,              false,     false,     true },
 #endif
 };
 

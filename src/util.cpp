@@ -83,6 +83,7 @@ string strMiscWarning;
 bool fNoListen = false;
 bool fLogTimestamps = false;
 volatile bool fReopenDebugLog = false;
+string strDefaultSpeech;
 
 // Init OpenSSL library multithreading support
 static CCriticalSection** ppmutexOpenSSL;
@@ -1171,6 +1172,13 @@ string GetRandomClamSpeech() {
     } 
     int index = rand() % clamSpeech.size();
     return clamSpeech[index];
+}
+
+string GetDefaultClamSpeech() {
+    if (strDefaultSpeech == "")
+        return GetRandomClamSpeech();
+
+    return strDefaultSpeech;
 }
 
 bool SaveClamSpeech() 
