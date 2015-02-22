@@ -255,15 +255,14 @@ Value createrawtransaction(const Array& params, bool fHelp)
 
     CTransaction rawTx;
 
+    // set clamSpeech when creating a raw transaction
     if (params.size() == 3)
-    {
-       std::string clamspeech = params[2].get_str();
-        if (clamspeech.length() > MAX_TX_COMMENT_LEN)
-       {
-            clamspeech.resize(MAX_TX_COMMENT_LEN);
-        }
-        rawTx.strCLAMSpeech = clamspeech;
-    }
+        rawTx.strCLAMSpeech = params[2].get_str();
+    else if (mapArgs["-clamspeech"] != "off")
+        rawTx.strCLAMSpeech = GetDefaultClamSpeech();
+
+    if (rawTx.strCLAMSpeech.length() > MAX_TX_COMMENT_LEN)
+        rawTx.strCLAMSpeech.resize(MAX_TX_COMMENT_LEN);
 
     BOOST_FOREACH(Value& input, inputs)
     {
