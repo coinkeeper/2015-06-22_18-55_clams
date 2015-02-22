@@ -392,7 +392,7 @@ Value setspeech(const Array& params, bool fHelp)
 
     strDefaultSpeech = params[0].get_str();
 
-    LogPrintf("set default speech to \"%s\"\n", strDefaultSpeech);
+    LogPrint("speech", "set default speech to \"%s\"\n", strDefaultSpeech);
 
     return Value::null;
 }
