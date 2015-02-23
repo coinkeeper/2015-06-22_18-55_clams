@@ -29,10 +29,10 @@ int64_t nMinimumInputValue = 0;
 
 extern unsigned int nMaxStakeValue;
 extern int64_t nSplitSize;
+extern int64_t nCombineLimit;
 
 static unsigned int GetStakeSplitAge() { return 1 * 24 * 60 * 60; }
 
-static int64_t GetStakeCombineThreshold() { return 1 * COIN; }
 extern vector<CKeyID> vChangeAddresses;
 extern set<CBitcoinAddress> setSpendLastAddresses;
 
@@ -2151,22 +2151,14 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey))
             && (pcoin.first->GetHash() != txNew.vin[0].prevout.hash || pcoin.second != txNew.vin[0].prevout.n))
         {
-            int64_t nTimeWeight = GetWeight((int64_t)pcoin.first->nTime, (int64_t)txNew.nTime);
+            // skip all remaining outputs if..
+            if (txNew.vin.size() >= 100 ||                                                      // .. we already have enough many inputs
+                nCredit > nCombineLimit ||                                                      // or the value is already pretty significant
+                nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)  // or we have reached the reserve limit
+                break;
 
-            // Stop adding more inputs if already too many inputs
-            if (txNew.vin.size() >= 100)
-                break;
-            // Stop adding more inputs if value is already pretty significant
-            if (nCredit >= GetStakeCombineThreshold())
-                break;
-            // Stop adding inputs if reached reserve limit
-            if (nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)
-                break;
-            // Do not add additional input if that causes the total to exceed the combine threshold
-            if (nCredit + pcoin.first->vout[pcoin.second].nValue >= GetStakeCombineThreshold())
-                continue;
-            // Do not add input that is still too young
-            if (nTimeWeight < 0)
+            // skip this output if ..
+            if (nCredit + pcoin.first->vout[pcoin.second].nValue > nCombineLimit) // .. it causes the total to exceed the combine threshold
                 continue;
 
             txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));

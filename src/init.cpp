@@ -50,6 +50,7 @@ unsigned int nDerivationMethodIndex;
 unsigned int nMinerSleep;
 unsigned int nMaxStakeValue;
 int64_t nSplitSize;
+int64_t nCombineLimit;
 bool fUseFastIndex;
 enum Checkpoints::CPMode CheckpointsMode;
 vector<CKeyID> vChangeAddresses;
@@ -351,6 +352,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     nMinerSleep = GetArg("-minersleep", 500);
     nMaxStakeValue = GetArg("-maxstakevalue", 0) * COIN;
     nSplitSize = GetArg("-splitsize", 0) * COIN;
+    nCombineLimit = GetArg("-combinelimit", 1) * COIN;
 
     // we want to avoid spending coins in these addresses if possible
     if (mapArgs.count("-spendlast")) {
