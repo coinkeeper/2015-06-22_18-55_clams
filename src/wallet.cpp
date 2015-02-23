@@ -2112,7 +2112,10 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 vwtxPrev.push_back(pcoin.first);
                 txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-		if (GetWeight(block.GetBlockTime(), (int64_t)txNew.nTime) < GetStakeSplitAge())
+                // if we're splitting on size, only split if adding 1 to the current size will make it double the split size
+                // and if we're not, split on age
+                if (( nSplitSize && nCredit >= nSplitSize * 2 - 1) ||
+                    (!nSplitSize && GetWeight(block.GetBlockTime(), (int64_t)txNew.nTime) < GetStakeSplitAge()))
                     txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); //split stake
                 LogPrint("coinstake", "CreateCoinStake : added kernel type=%d\n", whichType);
                 fKernelFound = true;
