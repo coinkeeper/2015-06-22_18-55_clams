@@ -11,6 +11,7 @@
 #include "uint256.h"
 #include "version.h"
 #include "clamspeech.h"
+#include "rpcserver.h"
 
 #include <algorithm>
 //For clamspeech until beter solution derivied.
@@ -565,6 +566,26 @@ int64_t GetArg(const std::string& strArg, int64_t nDefault)
 {
     if (mapArgs.count(strArg))
         return atoi64(mapArgs[strArg]);
+    return nDefault;
+}
+
+int64_t GetMoneyArg(const std::string& strArg, int64_t nDefault)
+{
+    json_spirit::Value valAmount;
+    string message;
+    if (mapArgs.count(strArg)) {
+        if (read_string(mapArgs[strArg], valAmount)) {
+            try {
+                return AmountFromValue(valAmount);
+            } catch (json_spirit::Object& objError) {
+                message = find_value(objError, "message").get_str();
+            } catch (runtime_error e) {
+                message = e.what();
+            }
+        } else
+            message = "can't parse value";
+        LogPrintf("Error setting %s: %s\n", strArg, message);
+    }
     return nDefault;
 }
 
