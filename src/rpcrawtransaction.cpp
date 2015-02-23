@@ -244,6 +244,7 @@ Value createrawtransaction(const Array& params, bool fHelp)
             "Create a transaction spending given inputs\n"
             "(array of objects containing transaction id and output number),\n"
             "sending to given address(es).\n"
+            "Each <amount> is either an amount to send or {\"count\":c,\"amount\":a} which adds <c> outputs each sending <a> CLAMs.\n"
             "Returns hex-encoded raw transaction.\n"
             "Note that the transaction's inputs are not signed, and\n"
             "it is not stored in the wallet or transmitted to the network.");
