@@ -350,9 +350,9 @@ bool AppInit2(boost::thread_group& threadGroup)
     nNodeLifespan = GetArg("-addrlifespan", 7);
     fUseFastIndex = GetBoolArg("-fastindex", true);
     nMinerSleep = GetArg("-minersleep", 500);
-    nMaxStakeValue = GetArg("-maxstakevalue", 0) * COIN;
-    nSplitSize = GetArg("-splitsize", 0) * COIN;
-    nCombineLimit = GetArg("-combinelimit", 1) * COIN;
+    nMaxStakeValue = GetMoneyArg("-maxstakevalue", 0*COIN);
+    nSplitSize     = GetMoneyArg("-splitsize",     0*COIN);
+    nCombineLimit  = GetMoneyArg("-combinelimit",  1*COIN);
 
     // we want to avoid spending coins in these addresses if possible
     if (mapArgs.count("-spendlast")) {
