@@ -1930,7 +1930,7 @@ bool CWallet::GetExpectedStakeTime(uint64_t& nExpected)
     
     int64_t nBalance = GetBalance();
     if (nBalance <= nReserveBalance)
-	 return false;
+        return false;
     
     set<pair<const CWalletTx*,unsigned int> > setCoins;
     int64_t nValueIn = 0;
@@ -2130,37 +2130,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     if (nCredit == 0 || nCredit > nBalance - nReserveBalance)
         return false;
 
-    BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
-    {
-        // Attempt to add more inputs
-        // Only add coins of the same key/address as kernel
-        if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey))
-            && (pcoin.first->GetHash() != txNew.vin[0].prevout.hash || pcoin.second != txNew.vin[0].prevout.n))
-        {
-            int64_t nTimeWeight = GetWeight((int64_t)pcoin.first->nTime, (int64_t)txNew.nTime);
-
-            // Stop adding more inputs if already too many inputs
-            if (txNew.vin.size() >= 100)
-                break;
-            // Stop adding more inputs if value is already pretty significant
-	    if (nCredit >= GetStakeCombineThreshold())
-                break;
-            // Stop adding inputs if reached reserve limit
-            if (nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)
-                break;
-            // Do not add additional significant input
-	    if (pcoin.first->vout[pcoin.second].nValue >= GetStakeCombineThreshold())
-                continue;
-            // Do not add input that is still too young
-            if (nTimeWeight < 0)
-                continue;
-
-            txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
-            nCredit += pcoin.first->vout[pcoin.second].nValue;
-            vwtxPrev.push_back(pcoin.first);
-        }
-    }
-
     // Calculate coin age reward
     {
         uint64_t nCoinAge;
@@ -2173,6 +2142,37 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             return false;
 
         nCredit += nReward;
+    }
+
+    // Attempt to add more inputs
+    BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
+    {
+        // Only add coins of the same key/address as kernel
+        if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey))
+            && (pcoin.first->GetHash() != txNew.vin[0].prevout.hash || pcoin.second != txNew.vin[0].prevout.n))
+        {
+            int64_t nTimeWeight = GetWeight((int64_t)pcoin.first->nTime, (int64_t)txNew.nTime);
+
+            // Stop adding more inputs if already too many inputs
+            if (txNew.vin.size() >= 100)
+                break;
+            // Stop adding more inputs if value is already pretty significant
+            if (nCredit >= GetStakeCombineThreshold())
+                break;
+            // Stop adding inputs if reached reserve limit
+            if (nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)
+                break;
+            // Do not add additional input if that causes the total to exceed the combine threshold
+            if (nCredit + pcoin.first->vout[pcoin.second].nValue >= GetStakeCombineThreshold())
+                continue;
+            // Do not add input that is still too young
+            if (nTimeWeight < 0)
+                continue;
+
+            txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
+            nCredit += pcoin.first->vout[pcoin.second].nValue;
+            vwtxPrev.push_back(pcoin.first);
+        }
     }
 
     // set clamSpeech when staking a block
