@@ -297,10 +297,29 @@ Value createrawtransaction(const Array& params, bool fHelp)
 
         CScript scriptPubKey;
         scriptPubKey.SetDestination(address.Get());
-        int64_t nAmount = AmountFromValue(s.value_);
 
-        CTxOut out(nAmount, scriptPubKey);
-        rawTx.vout.push_back(out);
+        // we usually want the 2nd parameter to be {"addr1":ammount1,"addr2":ammount2,...}
+        // in addition to numerical amounts we now also accept values like '{"count":2,"amount":1.3}' meaning 'make 2 outputs worth 1.3 CLAM each'
+        // "count" is a non-negative integer; 0 works and simply makes no new outputs
+        if (s.value_.type() == obj_type) {
+            const Object& o = s.value_.get_obj();
+            const Value& count_v = find_value(o, "count");
+
+            if (count_v.type() != int_type)
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must be integer");
+
+            int64_t count = count_v.get_int64();
+            if (count < 0)
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must not be negative");
+
+            CTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey);
+
+            while (count--)
+                rawTx.vout.push_back(out);
+        } else {
+            CTxOut out(AmountFromValue(s.value_), scriptPubKey);
+            rawTx.vout.push_back(out);
+        }
     }
 
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
