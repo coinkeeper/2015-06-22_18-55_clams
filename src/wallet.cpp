@@ -1758,6 +1758,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
         CTxDB txdb("r");
         {
             nFeeRet = nTransactionFee;
+            LogPrint("fee", "[FEE] start with fee = %s\n", FormatMoney(nFeeRet));
             while (true)
             {
                 wtxNew.vin.clear();
@@ -1790,8 +1791,10 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
                 if (nFeeRet < MIN_TX_FEE && nChange > 0 && nChange < CENT)
                 {
                     int64_t nMoveToFee = min(nChange, MIN_TX_FEE - nFeeRet);
+                    LogPrint("fee", "[FEE] change %s is positive and sub-cent so moving %s to fee\n", FormatMoney(nChange), FormatMoney(nMoveToFee));
                     nChange -= nMoveToFee;
                     nFeeRet += nMoveToFee;
+                    LogPrint("fee", "[FEE] new change %s and fee %s\n", FormatMoney(nChange), FormatMoney(nFeeRet));
                 }
 
                 if (nChange > 0)
@@ -1860,11 +1863,16 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
                 int64_t nPayFee = nTransactionFee * (1 + (int64_t)nBytes / 1000);
                 int64_t nMinFee = GetMinFee(wtxNew, 1, GMF_SEND, nBytes);
 
+                LogPrint("fee", "[FEE] tx is %d bytes; nPayFee = %s; nMinFee = %s; current fee = %s\n",
+                         nBytes, FormatMoney(nPayFee), FormatMoney(nMinFee), FormatMoney(nFeeRet));
                 if (nFeeRet < max(nPayFee, nMinFee))
                 {
                     nFeeRet = max(nPayFee, nMinFee);
+                    LogPrint("fee", "[FEE] so we increased fee to %s and loop again\n", FormatMoney(nFeeRet));
                     continue;
                 }
+
+                LogPrint("fee", "[FEE] so final fee is %s\n", FormatMoney(nFeeRet));
 
                 // Fill vtxPrev by copying from previous transactions vtxPrev
                 wtxNew.AddSupportingTransactions(txdb);
