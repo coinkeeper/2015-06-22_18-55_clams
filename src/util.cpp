@@ -11,7 +11,6 @@
 #include "uint256.h"
 #include "version.h"
 #include "clamspeech.h"
-#include "rpcserver.h"
 
 #include <algorithm>
 //For clamspeech until beter solution derivied.
@@ -363,6 +362,8 @@ bool ParseMoney(const char* pszIn, int64_t& nRet)
                 nUnits += nMult * (*p++ - '0');
                 nMult /= 10;
             }
+            while (isdigit(*p))
+                p++;
             break;
         }
         if (isspace(*p))
@@ -571,22 +572,17 @@ int64_t GetArg(const std::string& strArg, int64_t nDefault)
 
 int64_t GetMoneyArg(const std::string& strArg, int64_t nDefault)
 {
-    json_spirit::Value valAmount;
-    string message;
-    if (mapArgs.count(strArg)) {
-        if (read_string(mapArgs[strArg], valAmount)) {
-            try {
-                return AmountFromValue(valAmount);
-            } catch (json_spirit::Object& objError) {
-                message = find_value(objError, "message").get_str();
-            } catch (runtime_error e) {
-                message = e.what();
-            }
-        } else
-            message = "can't parse value";
-        LogPrintf("Error setting %s: %s\n", strArg, message);
+    int64_t value;
+
+    if (!(mapArgs.count(strArg)))
+        return nDefault;
+
+    if (!ParseMoney(mapArgs[strArg], value)) {
+        LogPrintf("Error setting %s to %s\n", strArg, mapArgs[strArg]);
+        return nDefault;
     }
-    return nDefault;
+
+    return value;
 }
 
 bool GetBoolArg(const std::string& strArg, bool fDefault)
