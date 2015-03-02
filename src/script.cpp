@@ -11,10 +11,12 @@ using namespace std;
 using namespace boost;
 
 #include "script.h"
-#include "keystore.h"
+
 #include "bignum.h"
 #include "key.h"
+#include "keystore.h"
 #include "main.h"
+#include "random.h"
 #include "sync.h"
 #include "util.h"
 
