@@ -9,18 +9,18 @@
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
 #include <boost/signals2/signal.hpp>
-#include <openssl/rand.h>
 
 
 #ifndef WIN32
 #include <arpa/inet.h>
 #endif
 
+#include "addrman.h"
+#include "hash.h"
 #include "mruset.h"
 #include "netbase.h"
 #include "protocol.h"
-#include "addrman.h"
-#include "hash.h"
+#include "random.h"
 
 class CNode;
 class CBlockIndex;

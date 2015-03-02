@@ -219,7 +219,7 @@ public:
         vchData.resize(vchTemp.size() - nVersionBytes);
         if (!vchData.empty())
             memcpy(&vchData[0], &vchTemp[nVersionBytes], vchData.size());
-        OPENSSL_cleanse(&vchTemp[0], vchData.size());
+        memory_cleanse(&vchTemp[0], vchData.size());
         return true;
     }
 

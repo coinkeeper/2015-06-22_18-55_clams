@@ -122,3 +122,4 @@ src/qt/clam-qt.files
 src/qt/clam-qt.includes
 moc_qrcodedialog.cpp
 moc_macnotificationhandler.cpp
+libbitcoin_util_a-cleanse.Po

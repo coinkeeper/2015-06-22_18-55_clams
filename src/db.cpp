@@ -15,7 +15,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/version.hpp>
-#include <openssl/rand.h>
 
 using namespace std;
 using namespace boost;

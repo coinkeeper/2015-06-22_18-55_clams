@@ -73,12 +73,14 @@ BITCOIN_CORE_H = \
   net.h \
   pbkdf2.h \
   protocol.h \
+  random.h \
   rpcclient.h \
   rpcprotocol.h \
   rpcserver.h \
   script.h \
   scrypt.h \
   serialize.h \
+  support/cleanse.h \
   sync.h \
   threadsafety.h \
   timedata.h \
@@ -91,7 +93,7 @@ BITCOIN_CORE_H = \
   util.h \
   version.h \
   wallet.h \
-  walletdb.h 
+  walletdb.h
 
 JSON_H = \
   json/json_spirit.h \
@@ -168,7 +170,9 @@ libbitcoin_util_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_util_a_SOURCES = \
   clientversion.cpp \
   clamspeech.cpp \
+  random.cpp \
   rpcprotocol.cpp \
+  support/cleanse.cpp \
   sync.cpp \
   version.cpp \
   util.cpp \
