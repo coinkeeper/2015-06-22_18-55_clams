@@ -1982,7 +1982,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     // Mark coin stake transaction
     CScript scriptEmpty;
     scriptEmpty.clear();
-    txNew.vout.push_back(CTxOut(0, scriptEmpty));
+    txNew.vout.push_back(CTxOut(0, scriptEmpty)); // this creates txNew.vout[0]
 
     // Choose coins to use
     int64_t nBalance = GetBalance();
@@ -2014,6 +2014,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
     int64_t nCredit = 0;
     CScript scriptPubKeyKernel;
+    int64_t nBlockTime;
     CTxDB txdb("r");
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
@@ -2042,10 +2043,11 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         }
 
         static int nMaxStakeSearchInterval = 60;
-        if (block.GetBlockTime() + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval) {
+        nBlockTime = block.GetBlockTime();
+        if (nBlockTime + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval) {
             LogPrint("stake", "[STAKE] skip %s:%-3d (%s CLAM) - only %d minutes old\n",
                       pcoin.first->hash.ToString(), pcoin.second, FormatMoney(pcoin.first->vout[pcoin.second].nValue),
-                      (txNew.nTime - nMaxStakeSearchInterval - block.GetBlockTime()) / 60);
+                      (txNew.nTime - nMaxStakeSearchInterval - nBlockTime) / 60);
             continue; // only count coins meeting min age requirement
         }
 
@@ -2118,13 +2120,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
                 nCredit += pcoin.first->vout[pcoin.second].nValue;
                 vwtxPrev.push_back(pcoin.first);
-                txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
+                txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); // this creates txNew.vout[1]
 
-                // if we're splitting on size, only split if adding 1 CLAM to the current size will make it double the split size
-                // and if we're not, split on age
-                if (( nSplitSize && nCredit + COIN >= nSplitSize * 2) ||
-                    (!nSplitSize && GetWeight(block.GetBlockTime(), (int64_t)txNew.nTime) < GetStakeSplitAge()))
-                    txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); //split stake
                 LogPrint("coinstake", "CreateCoinStake : added kernel type=%d\n", whichType);
                 fKernelFound = true;
                 break;
@@ -2152,29 +2149,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         nCredit += nReward;
     }
 
-    // Attempt to add more inputs
-    BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
-    {
-        // Only add coins of the same key/address as kernel
-        if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey))
-            && (pcoin.first->GetHash() != txNew.vin[0].prevout.hash || pcoin.second != txNew.vin[0].prevout.n))
-        {
-            // skip all remaining outputs if..
-            if (txNew.vin.size() >= 100 ||                                                      // .. we already have enough many inputs
-                nCredit > nCombineLimit ||                                                      // or the value is already pretty significant
-                nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)  // or we have reached the reserve limit
-                break;
-
-            // skip this output if ..
-            if (nCredit + pcoin.first->vout[pcoin.second].nValue > nCombineLimit) // .. it causes the total to exceed the combine threshold
-                continue;
-
-            txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
-            nCredit += pcoin.first->vout[pcoin.second].nValue;
-            vwtxPrev.push_back(pcoin.first);
-        }
-    }
-
     // set clamSpeech when staking a block
     if (!(mapArgs["-clamstake"] == "off")) {
         txNew.strCLAMSpeech = GetDefaultClamSpeech();
@@ -2182,14 +2156,16 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             txNew.strCLAMSpeech.resize(MAX_TX_COMMENT_LEN);
     }
 
-    // Set output amount
-    if (txNew.vout.size() == 3)
+    // if we're splitting on size, only split if the new size will make it at least double the split size
+    // and if we're not, split on age
+    if (( nSplitSize && nCredit >= nSplitSize * 2) ||
+        (!nSplitSize && GetWeight(nBlockTime, (int64_t)txNew.nTime) < GetStakeSplitAge()))
     {
         if (nSplitSize) {
             int n = 1;
 
             while (true) {
-                if (n > 2)
+                if (n > 1)
                     txNew.vout.push_back(CTxOut(0, txNew.vout[1].scriptPubKey));
 
                 if (nCredit < nSplitSize * 2) {
@@ -2203,12 +2179,39 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 n++;
             }
         } else {
+            txNew.vout.push_back(CTxOut(0, txNew.vout[1].scriptPubKey)); //split stake
             txNew.vout[1].nValue = (nCredit / 2 / CENT) * CENT;
             txNew.vout[2].nValue = nCredit - txNew.vout[1].nValue;
         }
-    }            
-    else
+    } else {
+        // we're not splitting the output, so attempt to add more inputs
+        BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
+        {
+            // Only add coins of the same key/address as kernel
+            if ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel ||
+                 pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey) &&
+                (pcoin.first->GetHash() != txNew.vin[0].prevout.hash ||
+                 pcoin.second != txNew.vin[0].prevout.n))
+            {
+                // skip all remaining outputs if..
+                if (txNew.vin.size() >= 100 ||                                                      // .. we already have enough many inputs
+                    nCredit > nCombineLimit ||                                                      // or the value is already pretty significant
+                    nCredit + pcoin.first->vout[pcoin.second].nValue > nBalance - nReserveBalance)  // or we have reached the reserve limit
+                    break;
+
+                // skip this output if ..
+                if (nCredit + pcoin.first->vout[pcoin.second].nValue > nCombineLimit) // .. it causes the total to exceed the combine threshold
+                    continue;
+
+                txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
+                nCredit += pcoin.first->vout[pcoin.second].nValue;
+                vwtxPrev.push_back(pcoin.first);
+            }
+        }
+
+        // we're not splitting, so put all the value in the first and only real output
         txNew.vout[1].nValue = nCredit;
+    }
 
     // Sign
     int nIn = 0;
