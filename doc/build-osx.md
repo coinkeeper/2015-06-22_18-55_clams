@@ -80,7 +80,7 @@ make
 
 make check
 
-4.  (Optional) You can also install bitcoind to your path:
+4.  (Optional) You can also install clamd to your path:
 
 make install
 
