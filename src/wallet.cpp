@@ -644,6 +644,18 @@ void CWallet::StakeTransaction(const CScript& script, int64_t nStakeReward, bool
               FormatMoney(nStakeReward), addr,
               FormatMoney(mapAddressRewards["*"]),
               FormatMoney(mapAddressRewards[addr]));
+
+    std::string strCmd = GetArg("-stakenotify", "");
+
+    if (!strCmd.empty())
+    {
+        boost::replace_all(strCmd, "%r", FormatMoney(nStakeReward));
+        boost::replace_all(strCmd, "%a", addr);
+        boost::replace_all(strCmd, "%t", FormatMoney(mapAddressRewards["*"]));
+        boost::replace_all(strCmd, "%s", FormatMoney(mapAddressRewards[addr]));
+
+        boost::thread t(runCommand, strCmd); // thread runs free
+    }
 }
 
 void CWallet::EraseFromWallet(const uint256 &hash)

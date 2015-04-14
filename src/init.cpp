@@ -252,6 +252,11 @@ std::string HelpMessage()
     strUsage += "  -clamstake=off         " + _("Set clamstake=off to turn off random clamspeech quotes when staking") + "\n";
     strUsage += "  -blocknotify=<cmd>     " + _("Execute command when the best block changes (%s in cmd is replaced by block hash)") + "\n";
     strUsage += "  -walletnotify=<cmd>    " + _("Execute command when a wallet transaction changes (%s in cmd is replaced by TxID)") + "\n";
+    strUsage += "  -stakenotify=<cmd>     " + _("Execute command each time we stake a block") + "\n";
+    strUsage += "                         " + _("(%r in cmd is replaced by the block reward,") + "\n";
+    strUsage += "                         " + _(" %a in cmd is replaced by the address which staked,") + "\n";
+    strUsage += "                         " + _(" %t in cmd is replaced by the total amount staked by this wallet, and") + "\n";
+    strUsage += "                         " + _(" %s in cmd is replaced by the total amount staked by the address which just staked)") + "\n";
     strUsage += "  -change=<addr>         " + _("Address to send change to") + "\n";
     strUsage += "  -spendlast=<addr>      " + _("Avoid spending outputs from given address(es) if possible") + "\n";
     strUsage += "  -confchange            " + _("Require a confirmations for change (default: 0)") + "\n";
@@ -922,6 +927,12 @@ bool AppInit2(boost::thread_group& threadGroup)
 
         // Run a thread to flush wallet periodically
         threadGroup.create_thread(boost::bind(&ThreadFlushWalletDB, boost::ref(pwalletMain->strWalletFile)));
+
+        // if we're going to be running a command each time we stake, sum all existing stake rewards now so we're ready
+        if (!GetArg("-stakenotify", "").empty() && !pwalletMain->fAddressRewardsReady) {
+            LogPrintf("initializing staking rewards map\n");
+            pwalletMain->SumStakingRewards();
+        }
     }
 #endif
 
