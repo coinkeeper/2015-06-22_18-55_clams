@@ -52,6 +52,7 @@ int64_t nMaxStakeValue;
 int64_t nSplitSize;
 int64_t nCombineLimit;
 bool fUseFastIndex;
+bool fCreditStakesToAccounts;
 enum Checkpoints::CPMode CheckpointsMode;
 vector<CKeyID> vChangeAddresses;
 set<CBitcoinAddress> setSpendLastAddresses;
@@ -354,6 +355,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     nNodeLifespan = GetArg("-addrlifespan", 7);
     fUseFastIndex = GetBoolArg("-fastindex", true);
+    fCreditStakesToAccounts = GetBoolArg("-creditstakestoaccounts", false);
     nMinerSleep = GetArg("-minersleep", 500);
     nMaxStakeValue = GetMoneyArg("-maxstakevalue", 0*COIN);
     nSplitSize     = GetMoneyArg("-splitsize",     0*COIN);

@@ -1248,14 +1248,28 @@ Value listaccounts(const Array& params, bool fHelp)
         list<pair<CTxDestination, int64_t> > listReceived;
         list<pair<CTxDestination, int64_t> > listSent;
 
-        // don't count staking in account balances - if you stake 5 into 6, it was adding 6, and not taking off the 5
-        if (wtx.IsCoinBase() || wtx.IsCoinStake())
+        // don't count proof-of-work rewards in account balances
+        if (wtx.IsCoinBase())
             continue;
 
         int nDepth = wtx.GetDepthInMainChain();
         if (nDepth < 0)
             continue;
         wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount);
+
+        // count staking reward in the appropriate account
+        if (wtx.IsCoinStake()) {
+            if (fCreditStakesToAccounts) {
+                CTxDestination td(listSent.front().first);
+                if (pwalletMain->mapAddressBook.count(td))
+                    mapAccountBalances[pwalletMain->mapAddressBook[td]] -= nFee;
+                else
+                    mapAccountBalances[""] -= nFee;
+            } else
+                mapAccountBalances[""] -= nFee;
+            continue;
+        }
+
         mapAccountBalances[strSentAccount] -= nFee;
         BOOST_FOREACH(const PAIRTYPE(CTxDestination, int64_t)& s, listSent)
             mapAccountBalances[strSentAccount] -= s.second;
