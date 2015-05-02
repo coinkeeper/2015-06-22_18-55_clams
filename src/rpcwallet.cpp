@@ -1259,7 +1259,14 @@ Value listaccounts(const Array& params, bool fHelp)
 
         // count staking reward in the appropriate account
         if (wtx.IsCoinStake()) {
-            mapAccountBalances[fCreditStakeAddressAccounts ? pwalletMain->mapAddressBook[listSent.front().first] : ""] -= nFee;
+            if (fCreditStakesToAccounts) {
+                CTxDestination td(listSent.front().first);
+                if (pwalletMain->mapAddressBook.count(td))
+                    mapAccountBalances[pwalletMain->mapAddressBook[td]] -= nFee;
+                else
+                    mapAccountBalances[""] -= nFee;
+            } else
+                mapAccountBalances[""] -= nFee;
             continue;
         }
 
