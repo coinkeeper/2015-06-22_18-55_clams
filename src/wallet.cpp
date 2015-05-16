@@ -1897,10 +1897,11 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, 
     return true;
 }
 
-bool CWallet::CreateTransaction(CScript scriptPubKey, int64_t nValue,  CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strCLAMSpeech, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(CScript scriptPubKey, int64_t nValue, int64_t nCount, CWalletTx& wtxNew, CReserveKey& reservekey, int64_t& nFeeRet, std::string strCLAMSpeech, const CCoinControl* coinControl)
 {
     vector< pair<CScript, int64_t> > vecSend;
-    vecSend.push_back(make_pair(scriptPubKey, nValue));
+    while (nCount--)
+        vecSend.push_back(make_pair(scriptPubKey, nValue));
     return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, strCLAMSpeech, coinControl);
 }
 
@@ -2295,7 +2296,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
 
 
 
-string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNew, std::string strTxComment, bool fAskFee)
+string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, int64_t nCount, CWalletTx& wtxNew, std::string strTxComment, bool fAskFee)
 {
     CReserveKey reservekey(this);
     int64_t nFeeRequired;
@@ -2312,10 +2313,10 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
         LogPrintf("SendMoney() : %s", strError);
         return strError;
     }
-    if (!CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired, strTxComment))
+    if (!CreateTransaction(scriptPubKey, nValue, nCount, wtxNew, reservekey, nFeeRequired, strTxComment))
     {
         string strError;
-        if (nValue + nFeeRequired > GetBalance())
+        if (nValue * nCount + nFeeRequired > GetBalance())
             strError = strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!"), FormatMoney(nFeeRequired));
         else
             strError = _("Error: Transaction creation failed!");
@@ -2334,14 +2335,18 @@ string CWallet::SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNe
 
 
 
-string CWallet::SendMoneyToDestination(const CTxDestination& address, int64_t nValue, CWalletTx& wtxNew, std::string strTxComment, bool fAskFee)
+string CWallet::SendMoneyToDestination(const CTxDestination& address, int64_t nValue, int64_t nCount, CWalletTx& wtxNew, std::string strTxComment, bool fAskFee)
 {
     // Check amount
     if (nValue <= 0)
         return _("Invalid amount");
-    if (nValue + nTransactionFee > GetBalance()) {
+    // Check count
+    if (nCount <= 0)
+        return _("Invalid count");
+    int64_t nValueProduct = nValue * nCount;
+    if (nValueProduct + nTransactionFee > GetBalance()) {
         LogPrintf("CWallet::SendMoneyToDestination failed: value (%s) + fee (%s) = %s > balance (%s)\n",
-                  FormatMoney(nValue), FormatMoney(nTransactionFee), FormatMoney(nValue + nTransactionFee), FormatMoney(GetBalance()));
+                  FormatMoney(nValueProduct), FormatMoney(nTransactionFee), FormatMoney(nValueProduct + nTransactionFee), FormatMoney(GetBalance()));
         return _("Insufficient funds");
     }
 
@@ -2349,7 +2354,7 @@ string CWallet::SendMoneyToDestination(const CTxDestination& address, int64_t nV
     CScript scriptPubKey;
     scriptPubKey.SetDestination(address);
 
-    return SendMoney(scriptPubKey, nValue, wtxNew, strTxComment, fAskFee);
+    return SendMoney(scriptPubKey, nValue, nCount, wtxNew, strTxComment, fAskFee);
 }
 
 

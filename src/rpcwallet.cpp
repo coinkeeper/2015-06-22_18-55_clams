@@ -265,7 +265,7 @@ Value sendtoaddress(const Array& params, bool fHelp)
     if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
             "sendtoaddress <clamaddress> <amount> [comment] [comment-to] [tx-comment]\n"
-            "<amount> is a real and is rounded to the nearest 0.000001"
+            "<amount> is either an amount to send or {\"count\":c,\"amount\":a} which sends <c> separate outputs each of size <a> CLAMs"
             + HelpRequiringPassphrase());
 
     CBitcoinAddress address(params[0].get_str());
@@ -273,7 +273,23 @@ Value sendtoaddress(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Clam address");
 
     // Amount
-    int64_t nAmount = AmountFromValue(params[1]);
+    int64_t nAmount, nCount;
+    
+    if (params[1].type() == obj_type) {
+        Object s = params[1].get_obj();
+        const Value& count_v = find_value(s, "count");
+        if (count_v.type() != int_type)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must be integer");
+
+        nCount = count_v.get_int64();
+        if (nCount < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must not be negative");
+
+        nAmount = AmountFromValue(find_value(s, "amount"));
+    } else {
+        nCount = 1;
+        nAmount = AmountFromValue(params[1]);
+    }
 
     // Wallet comments
     CWalletTx wtx;
@@ -294,7 +310,7 @@ Value sendtoaddress(const Array& params, bool fHelp)
     if (pwalletMain->IsLocked())
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
 
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx, clamspeech);
+    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, nCount, wtx, clamspeech);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 
@@ -680,14 +696,31 @@ Value sendfrom(const Array& params, bool fHelp)
      if (fHelp || params.size() < 3 || params.size() > 7)
         throw runtime_error(
             "sendfrom <fromaccount> <toclamaddress> <amount> [minconf=1] [comment] [comment-to] [tx-comment]\n"
-            "<amount> is a real and is rounded to the nearest 0.000001"
+            "<amount> is either an amount to send or {\"count\":c,\"amount\":a} which sends <c> separate outputs each of size <a> CLAMs"
             + HelpRequiringPassphrase());
 
     string strAccount = AccountFromValue(params[0]);
     CBitcoinAddress address(params[1].get_str());
     if (!address.IsValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Clam address");
-    int64_t nAmount = AmountFromValue(params[2]);
+
+    int64_t nAmount, nCount;
+
+    if (params[2].type() == obj_type) {
+        Object s = params[2].get_obj();
+        const Value& count_v = find_value(s, "count");
+        if (count_v.type() != int_type)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must be integer");
+
+        nCount = count_v.get_int64();
+        if (nCount < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, count must not be negative");
+
+        nAmount = AmountFromValue(find_value(s, "amount"));
+    } else {
+        nCount = 1;
+        nAmount = AmountFromValue(params[2]);
+    }
 
     int nMinDepth = 1;
     if (params.size() > 3)
@@ -712,11 +745,11 @@ Value sendfrom(const Array& params, bool fHelp)
 
     // Check funds
     int64_t nBalance = GetAccountBalance(strAccount, nMinDepth);
-    if (nAmount > nBalance)
+    if (nAmount * nCount > nBalance)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
 
     // Send
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx, clamspeech);
+    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, nCount, wtx, clamspeech);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 
