@@ -1151,7 +1151,7 @@ void BitcoinGUI::updateStakingIcon()
     if (nLastCoinStakeSearchInterval && nWeight)
     {
         uint64_t nEstimateTime;
-        uint64_t nNetworkWeight = GetPoSKernelPS();
+        uint64_t nNetworkWeight = GetPoSKernelPS() / COIN;
 
         pwalletMain->GetExpectedStakeTime(nEstimateTime);
 
@@ -1173,11 +1173,8 @@ void BitcoinGUI::updateStakingIcon()
             text = tr("%n day(s)", "", nEstimateTime/(60*60*24));
         }
 
-        nWeight /= COIN;
-        nNetworkWeight /= COIN;
-
         labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
-        labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight).arg(nNetworkWeight).arg(text));
+        labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight/COIN).arg(nNetworkWeight).arg(text));
     }
     else
     {
