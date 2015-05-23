@@ -58,7 +58,7 @@ The rest of these commands are run inside brew interactive mode:
 /private/tmp/berkeley-db4-UGpd0O $ exit
 ```
 
-After exiting, you'll get a warning that the install is keg-only, which means it wasn't symlinked to `/usr/local`.  You don't need it to link it to build bitcoin, but if you want to, here's how:
+After exiting, you'll get a warning that the install is keg-only, which means it wasn't symlinked to `/usr/local`.  You don't need it to link it to build clam, but if you want to, here's how:
 
 $ brew link --force berkeley-db4
 
@@ -115,7 +115,7 @@ All dependencies should be compiled with these flags:
 -arch x86_64
 -isysroot $(xcode-select --print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk
 
-Once dependencies are compiled, see release-process.md for how the Bitcoin-Qt.app
+Once dependencies are compiled, see release-process.md for how the Clam-Qt.app
 bundle is packaged and signed to create the .dmg disk image that is distributed.
 
 Running
@@ -127,7 +127,7 @@ directory. We have to first create the RPC configuration file, though.
 Run `./clamd` to get the filename where it should be put, or just try these
 commands:
 
-echo -e "rpcuser=bitcoinrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Clam/clam.conf"
+echo -e "rpcuser=clamrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Clam/clam.conf"
 chmod 600 "/Users/${USER}/Library/Application Support/Clam/clam.conf"
 
 The next time you run it, it will start downloading the blockchain, but it won't
@@ -139,5 +139,5 @@ tail -f $HOME/Library/Application\ Support/Clam/debug.log
 Other commands:
 -------
 
-./clamd -daemon # to start the bitcoin daemon.
+./clamd -daemon # to start the clam daemon.
 ./clamd --help  # for a list of command-line options.
